@@ -362,7 +362,7 @@ values
    'Porcentaje en oro de todos los vales. Se congela dentro de cada vale al emitirlo.'),
   ('meses_vigencia_vale', '1', 'numero', 'vales',
    'Meses que dura un vale desde que se emite. Se ignora si hay vigencia_hasta.'),
-  ('vigencia_hasta', '', 'texto', 'vales',
+  ('vigencia_hasta', '2026-10-31', 'texto', 'vales',
    'Fecha de corte de la campaña (AAAA-MM-DD), en hora de Guatemala. Vacío = usar meses_vigencia_vale.'),
   ('dias_aviso_vencimiento', '7', 'numero', 'vales',
    'Con cuántos días de antelación se avisa de un vale por vencer.'),
@@ -383,6 +383,34 @@ on conflict (clave) do nothing;
 -- cae donde nadie espera. La clave vieja se retira para que no se quede en
 -- la pantalla de configuración sin hacer nada.
 delete from smartvalehubgold.configuracion where clave = 'dias_vigencia_vale';
+
+-- La campaña cierra el 31 de octubre de 2026: un solo día para toda la red
+-- en vez de un mes rodante por vale.
+--
+-- Va como `update` y no confiado al `insert` de arriba, que lleva
+-- `on conflict do nothing`: la clave ya existe con el valor vacío en la base
+-- publicada, así que el insert la habría dejado intacta y el corte no
+-- entraría nunca.
+--
+-- La fecha se congela dentro de cada vale al emitirlo, así que esto solo rige
+-- para los que se emitan de aquí en adelante; los ya entregados se amplían
+-- justo debajo.
+update smartvalehubgold.configuracion
+   set valor = '2026-10-31'
+ where clave = 'vigencia_hasta';
+
+-- Y los vales ya emitidos se alinean con esa fecha: la campaña termina el
+-- mismo día para todo el mundo.
+--
+-- Solo se amplía, nunca se recorta —de ahí el `<`—: a un cliente que ya tiene
+-- su vale en el teléfono no se le puede acortar lo prometido, y un vale con
+-- vencimiento posterior al corte se queda como está.
+update smartvalehubgold.vales
+   set fecha_vencimiento = ((date '2026-10-31' + 1)::timestamp
+                            at time zone 'America/Guatemala') - interval '1 second'
+ where fecha_vencimiento < ((date '2026-10-31' + 1)::timestamp
+                            at time zone 'America/Guatemala') - interval '1 second'
+   and not anulado;
 
 
 -- ═══ Marca de actualización ══════════════════════════════════════════════

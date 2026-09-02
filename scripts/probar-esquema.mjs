@@ -169,19 +169,22 @@ const v1 = await emitir(u1.id, "A1", "Ana Pérez", "50255512345", null, "A1-VIP"
 afirmar("el primer vale de la tienda es MZT-000001", v1.codigo === "MZT-000001", v1.codigo);
 afirmar("el descuento se congela al 15% en oro", Number(v1.descuento_oro_pct) === 15);
 
-// Un mes de calendario, no treinta días: al cliente se le dice «hasta el 2 de
-// octubre», el mismo día del mes siguiente. Se compara contra lo que calcula
-// el propio Postgres para no reimplementar aquí los meses cortos.
+// Con fecha de corte configurada, todos los vales mueren ese día y la ventana
+// de meses no se usa. Se comprueba contra lo que calcula el propio Postgres:
+// el último instante del día EN GUATEMALA, que no es el mismo que en UTC.
 {
   const esperado = (
-    await uno("select (now() + interval '1 month') as v")
+    await uno(
+      `select ((smartvalehubgold.fn_config_texto('vigencia_hasta')::date + 1)::timestamp
+                at time zone 'America/Guatemala') - interval '1 second' as v`,
+    )
   ).v;
   const diferencia = Math.abs(
     new Date(v1.fecha_vencimiento).getTime() - new Date(esperado).getTime(),
   );
   afirmar(
-    "y vence a un mes de calendario de hoy",
-    diferencia < 60_000,
+    "y vence el día de corte de la campaña, no a un mes",
+    diferencia < 1000,
     `${v1.fecha_vencimiento} vs ${esperado}`,
   );
 }
@@ -445,6 +448,51 @@ afirmar(
   valesAntes > 0 && valesDespues === valesAntes,
   `${valesAntes} → ${valesDespues}`,
 );
+
+// El corte de campaña alcanza también a los vales que ya estaban emitidos:
+// la fecha va congelada dentro de cada uno, así que sin este `update` la
+// campaña terminaría un día distinto para cada cliente.
+{
+  const fila = (
+    await db.query(`
+      select count(*)::int total,
+             count(*) filter (
+               where v.fecha_vencimiento
+                     = ((date '2026-10-31' + 1)::timestamp
+                        at time zone 'America/Guatemala') - interval '1 second'
+             )::int alineados
+        from smartvalehubgold.vales v
+       where not v.anulado`)
+  ).rows[0];
+  afirmar(
+    "los vales ya emitidos se amplían hasta el corte de campaña",
+    fila.total > 0 && fila.alineados === fila.total,
+    `${fila.alineados} de ${fila.total}`,
+  );
+}
+
+// Y nunca al revés: a un cliente que ya tiene el vale en el teléfono no se le
+// puede acortar lo prometido. Se planta uno que vence MÁS TARDE que el corte
+// y se reaplica: tiene que quedarse como estaba.
+{
+  await db.exec(`
+    update smartvalehubgold.vales
+       set fecha_vencimiento = timestamptz '2027-06-30 12:00:00-06'
+     where id = (select min(id) from smartvalehubgold.vales)`);
+
+  const fallo = await aplicarMigraciones();
+  const quedo = (
+    await db.query(`
+      select fecha_vencimiento f from smartvalehubgold.vales
+       where id = (select min(id) from smartvalehubgold.vales)`)
+  ).rows[0].f;
+
+  afirmar(
+    "y un vale que vence después del corte no se recorta",
+    fallo === null && new Date(quedo).getUTCFullYear() === 2027,
+    `${quedo}`,
+  );
+}
 
 // ── Cierre ───────────────────────────────────────────────────────────────
 console.log(`\n${ok} correctas, ${mal} fallo(s).\n`);

@@ -175,25 +175,60 @@ function Marca({
   logo?: string | null;
 }) {
   // El logotipo manda cuando lo hay: es la identidad que la tienda eligió.
-  // El nombre en tipografía es el respaldo, no la opción secundaria.
   //
   // Su caja es más estrecha que la del nombre: el texto se lee bien ocupando
   // todo el ancho, pero una imagen a esa medida deja de parecer un logotipo y
   // pasa a parecer un banner. Se limita también el alto, porque los logotipos
   // de las tiendas no vienen todos con la misma proporción.
+  //
+  // Debajo va el nombre igualmente, y no como respaldo: durante un tiempo el
+  // logotipo lo sustituía, y un vale de una tienda con logotipo pequeño
+  // llegaba al cliente sin decir en ninguna parte de qué joyería era. Un
+  // logotipo se reconoce si ya conoces la marca; el nombre se lee siempre.
+  // Aquí va en pequeño y en gris, que es lo que corresponde a un pie: quien
+  // reconoce el logotipo no lo necesita, y quien no, lo encuentra.
   if (logo) {
     return (
-      <div style={{ display: "flex" }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        }}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={logo}
           alt=""
           style={{
             maxWidth: ancho * 0.62,
-            maxHeight: cuerpo * 2.1,
+            /*
+              El alto que se le deja a la imagen baja de 2.1 a 1.5 cuando
+              lleva nombre debajo, porque el bloque entero tiene que seguir
+              midiendo lo que medía. La vertical apila con márgenes fijos y
+              sin holgura que ceder: al añadir el nombre sin descontarlo de
+              algún sitio, el pie —código, portador y fecha— se salía de la
+              página y acababa impreso uno encima de otro.
+            */
+            maxHeight: nombre ? cuerpo * 1.7 : cuerpo * 2.1,
             objectFit: "contain",
           }}
         />
+        {nombre ? (
+          <span
+            style={{
+              marginTop: cuerpo * 0.26,
+              fontFamily: SERIF,
+              fontWeight: 600,
+              fontSize: cuerpo * 0.42,
+              letterSpacing: cuerpo * 0.42 * MARCA.interletraje,
+              color: PALETA.gris,
+              textAlign: "center",
+            }}
+          >
+            {nombre}
+          </span>
+        ) : null}
       </div>
     );
   }
@@ -329,10 +364,10 @@ function Sello({ lado, margen }: { lado: number; margen: number }) {
         style={{
           fontFamily: SANS,
           fontWeight: 600,
-          fontSize: lado * 0.108,
-          letterSpacing: lado * 0.0135,
-          marginLeft: lado * 0.0135,
-          color: PALETA.acento,
+          fontSize: lado * 0.125,
+          letterSpacing: lado * 0.0125,
+          marginLeft: lado * 0.0125,
+          color: PALETA.tinta,
         }}
       >
         {SELLO.titulo}
@@ -352,9 +387,12 @@ function Sello({ lado, margen }: { lado: number; margen: number }) {
           key={linea}
           style={{
             fontFamily: SANS,
-            fontSize: lado * 0.072,
-            letterSpacing: lado * 0.006,
-            color: PALETA.gris,
+            // El pie se leía a 10 px en una imagen que WhatsApp enseña
+            // reducida a la mitad: no era el color, era el cuerpo.
+            fontSize: lado * 0.088,
+            letterSpacing: lado * 0.005,
+            fontWeight: 500,
+            color: PALETA.acento,
             lineHeight: 1.35,
           }}
         >
@@ -447,11 +485,19 @@ export function tarjetaVertical(vale: DatosImagenVale): ReactElement {
           backgroundColor: PALETA.blanco,
           borderRadius: 10,
           padding: 16,
-          marginTop: 30,
+          marginTop: 26,
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={vale.qr} width={232} height={232} alt="" />
+        {/*
+          206 y no 232. Con el nombre de la tienda bajo el logotipo la
+          columna dejó de caber en los 1200 px, y cuando eso pasa Satori no
+          recorta por abajo: aprieta, y el código acaba impreso encima del
+          portador. El alto sale de aquí porque el QR es la pieza más grande
+          y la que menos sufre: a 206 px sigue muy por encima de lo que un
+          teléfono necesita para leerlo, mientras que el código y la fecha no
+          admiten perder ni un punto.
+        */}
+        <img src={vale.qr} width={206} height={206} alt="" />
       </div>
 
       <span
@@ -461,12 +507,15 @@ export function tarjetaVertical(vale: DatosImagenVale): ReactElement {
           fontSize: 27,
           letterSpacing: 2.4,
           color: PALETA.acento,
-          marginTop: 18,
+          // El pie llevaba la mitad de aire que el resto del vale —18 y 10
+          // px— y se leía apelmazado contra el QR, que es justo donde hay
+          // que mirar dos veces: el código se dicta en caja.
+          marginTop: 26,
         }}
       >
         {vale.codigo}
       </span>
-      <span style={{ fontSize: 16, color: PALETA.gris, marginTop: 10 }}>
+      <span style={{ fontSize: 16, color: PALETA.gris, marginTop: 14 }}>
         {vale.portador} · {vale.tipoEtiqueta}
       </span>
 

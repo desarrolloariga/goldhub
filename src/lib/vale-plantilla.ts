@@ -17,21 +17,28 @@ import type { EstadoVale } from "@/lib/supabase/types";
 
 export const PALETA = {
   /**
-   * Blanco. El vale es claro y no negro, y esa es la decisión que manda
+   * Hueso. El vale es claro y no oscuro, y esa es la decisión que manda
    * sobre el resto: cada tienda imprime aquí SU logotipo, y un logotipo se
-   * diseña casi siempre para fondo blanco. Sobre negro, el que no traiga
+   * diseña casi siempre para fondo blanco. Sobre oscuro, el que no traiga
    * versión en claro aparece con un recuadro alrededor —o hay que pedirle a
    * cada tienda una segunda versión, que es una gestión que nadie va a
-   * sostener—. Sobre blanco entra cualquiera tal como llegue, y además es
-   * lo que menos tinta gasta al imprimirlo.
+   * sostener—. Sobre un fondo claro entra cualquiera tal como llegue.
+   *
+   * Claro, pero no blanco puro: en blanco el vale se leía como una hoja a
+   * medio imprimir, y todo lo que va en taupe claro encima —el sello, las
+   * reglas, las esquinas— se perdía por falta de fondo contra el que
+   * recortarse. Este hueso es apenas un grado más cálido, suficiente para
+   * que el vale tenga superficie sin tocar el contraste del texto oscuro,
+   * que es lo que de verdad hay que leer.
    */
-  fondo: "#FFFFFF",
+  fondo: "#F7F3EC",
   /**
-   * Líneas de la trama diagonal y fondo de la caja de pasos. Muy cerca del
-   * blanco: sobre fondo claro, una trama que se note compite con el
-   * logotipo de la tienda, que es lo único que debe destacar arriba.
+   * Líneas de la trama diagonal y fondo de la caja de pasos. Un grado por
+   * debajo del fondo, no por encima: sobre fondo claro, una trama que se
+   * note compite con el logotipo de la tienda, que es lo único que debe
+   * destacar arriba.
    */
-  trama: "#F1EEE8",
+  trama: "#EDE7DC",
   /**
    * Taupe: reglas, esquinas, iconos, código y títulos de sección.
    *

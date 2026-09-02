@@ -57,7 +57,6 @@ export function Logotipo({
                 alt={`Logotipo de ${nombre}`}
                 width={96}
                 height={96}
-                unoptimized
                 className="size-full object-contain"
               />
             )

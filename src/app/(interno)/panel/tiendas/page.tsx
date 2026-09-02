@@ -74,7 +74,6 @@ export default async function PaginaTiendas() {
                         alt=""
                         width={44}
                         height={44}
-                        unoptimized
                         className="size-full object-contain"
                       />
                     ) : (

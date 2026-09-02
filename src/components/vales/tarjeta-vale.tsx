@@ -151,7 +151,6 @@ export function TarjetaVale({
               alt={vale.tienda}
               width={96}
               height={96}
-              unoptimized
               className="h-auto max-h-24 w-auto max-w-[70%] object-contain"
             />
           ) : (

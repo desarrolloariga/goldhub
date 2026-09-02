@@ -648,7 +648,11 @@ create or replace function smartvalehubgold.fn_registrar_redencion(
   p_correo       text default null,
   p_monto_oro    numeric default 0,
   p_referido_por text default null,
-  p_tienda_id    bigint default null
+  p_tienda_id    bigint default null,
+  -- Cómo paga, que es lo que decide el porcentaje. Va al final y con valor
+  -- por omisión para no romper a quien ya llamaba a esta función con ocho
+  -- argumentos posicionales.
+  p_forma_pago   text default null
 )
 returns smartvalehubgold.redenciones
 language plpgsql
@@ -659,6 +663,8 @@ declare
   v_tienda_id   bigint;
   v_tienda_vale text;
   v_contacto_id bigint;
+  v_forma       text;
+  v_pct         numeric;
   v_descuento   numeric;
   v_redencion   smartvalehubgold.redenciones%rowtype;
 begin
@@ -709,16 +715,41 @@ begin
 
   v_contacto_id := smartvalehubgold.fn_obtener_o_crear_contacto(p_nombre, p_telefono, p_correo);
 
-  -- Con el porcentaje congelado en el vale, no con el de hoy.
-  v_descuento := round(p_monto_oro * v_vale.descuento_oro_pct / 100, 2);
+  -- El porcentaje lo decide la forma de pago: la red descuenta más por
+  -- transferencia que con tarjeta.
+  --
+  -- Se lee de la configuración de hoy y no del vale, y esa es la diferencia
+  -- con el descuento de oro que había antes: aquel iba congelado dentro de
+  -- cada vale porque era la promesa que el cliente tenía escrita, mientras
+  -- que estos son condiciones de la red que valen para todos los vales
+  -- vivos. Lo que sí se congela es el resultado, en `descuento_pct`, para
+  -- que una compra vieja siga explicando su propio descuento.
+  v_forma := nullif(btrim(lower(coalesce(p_forma_pago, ''))), '');
+
+  if v_forma is null then
+    raise exception 'Falta indicar cómo se pagó la compra.'
+      using errcode = 'SV006';
+  end if;
+
+  if v_forma not in ('visa', 'transferencia') then
+    raise exception 'Forma de pago no reconocida: %.', p_forma_pago
+      using errcode = 'SV006';
+  end if;
+
+  v_pct := smartvalehubgold.fn_config(
+    case v_forma when 'visa' then 'descuento_visa'
+                 else 'descuento_transferencia' end, 0);
+
+  v_descuento := round(p_monto_oro * v_pct / 100, 2);
 
   insert into smartvalehubgold.redenciones (
     vale_id, tienda_id, usuario_id, contacto_id,
-    monto_oro, descuento_aplicado, referido_por
+    monto_oro, descuento_aplicado, referido_por, forma_pago, descuento_pct
   )
   values (
     v_vale.id, v_tienda_id, p_usuario_id, v_contacto_id,
-    p_monto_oro, v_descuento, nullif(btrim(coalesce(p_referido_por, '')), '')
+    p_monto_oro, v_descuento, nullif(btrim(coalesce(p_referido_por, '')), ''),
+    v_forma, v_pct
   )
   returning * into v_redencion;
 
@@ -911,11 +942,16 @@ begin
 
   select * into v_vale from smartvalehubgold.vales where id = v_redencion.vale_id;
 
-  -- Se recalcula con el porcentaje del vale, no con el de hoy: corregir el
-  -- monto no debe cambiar lo que se le prometió al cliente.
+  -- Se recalcula con el porcentaje que se aplicó EN ESA COMPRA, no con el de
+  -- hoy ni con el del vale: corregir el monto no debe cambiar el trato que ya
+  -- se cerró. `descuento_pct` es nulo en las compras anteriores al cambio de
+  -- forma de pago, y esas siguen con el porcentaje que llevaba el vale.
   update smartvalehubgold.redenciones
      set monto_oro          = p_monto_oro,
-         descuento_aplicado = round(p_monto_oro * v_vale.descuento_oro_pct / 100, 2),
+         descuento_aplicado = round(
+           p_monto_oro
+             * coalesce(v_redencion.descuento_pct, v_vale.descuento_oro_pct)
+             / 100, 2),
          contacto_id        = v_contacto_id,
          referido_por       = nullif(btrim(coalesce(p_referido_por, '')), ''),
          editada_por        = p_usuario_id,

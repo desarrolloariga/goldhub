@@ -44,12 +44,15 @@ function numero(valor: string) {
 export function FormularioRedencion({
   codigo,
   portador,
-  descuentoOro,
+  visa,
+  transferencia,
 }: {
   codigo: string;
   /** Nombre del portador: se sugiere como valor por omisión del referidor. */
   portador: string;
-  descuentoOro: number;
+  /** Los dos porcentajes de la red: el que se aplica depende de cómo pague. */
+  visa: number;
+  transferencia: number;
 }) {
   const [estado, accion, enviando] = useActionState<EstadoRedencion, FormData>(
     registrarRedencion,
@@ -70,7 +73,8 @@ export function FormularioRedencion({
         key={estado?.ok?.id ?? "nuevo"}
         codigo={codigo}
         portador={portador}
-        descuentoOro={descuentoOro}
+        visa={visa}
+        transferencia={transferencia}
         accion={accion}
         enviando={enviando}
         estado={estado}
@@ -159,7 +163,8 @@ function Confirmacion({
 function Captura({
   codigo,
   portador,
-  descuentoOro,
+  visa,
+  transferencia,
   accion,
   enviando,
   estado,
@@ -167,7 +172,8 @@ function Captura({
 }: {
   codigo: string;
   portador: string;
-  descuentoOro: number;
+  visa: number;
+  transferencia: number;
   accion: (formData: FormData) => void;
   enviando: boolean;
   estado: EstadoRedencion;
@@ -175,12 +181,20 @@ function Captura({
   yaRegistro: boolean;
 }) {
   const [oro, setOro] = useState("");
+  /*
+   * Sin valor por omisión a propósito. Es lo que decide el porcentaje, así
+   * que preseleccionar uno haría que un despiste cobrara de menos —o de
+   * más— sin que nadie lo notara: la cajera tiene que elegirlo mirando.
+   */
+  const [forma, setForma] = useState<"visa" | "transferencia" | "">("");
 
   const campo = (nombre: string) => estado?.campos?.[nombre];
 
+  const pct = forma === "visa" ? visa : forma === "transferencia" ? transferencia : 0;
+
   // El descuento se enseña mientras se teclea, pero no viaja: lo calcula la
   // base. Es una cuenta de comprobación para la cajera, no un dato.
-  const descuento = (numero(oro) * descuentoOro) / 100;
+  const descuento = (numero(oro) * pct) / 100;
 
   return (
     <form action={accion} className="flex flex-col gap-5">
@@ -229,6 +243,43 @@ function Captura({
           DATOS DE LA COMPRA
         </span>
 
+        {/* Va antes del monto porque es lo que decide el porcentaje: con el
+            importe ya escrito, el descuento cambia bajo la mano al elegir. */}
+        <div className="flex flex-col gap-[7px]">
+          <Rotulo>CÓMO PAGA</Rotulo>
+          <input type="hidden" name="formaPago" value={forma} />
+          <div className="flex gap-2">
+            {(
+              [
+                ["visa", "Visa", visa],
+                ["transferencia", "Transferencia", transferencia],
+              ] as const
+            ).map(([valor, etiqueta, porcentaje]) => (
+              <button
+                key={valor}
+                type="button"
+                onClick={() => setForma(valor)}
+                aria-pressed={forma === valor}
+                className={`rounded-field flex flex-1 cursor-pointer flex-col items-center gap-[2px] border px-3 py-[10px] transition-colors ${
+                  forma === valor
+                    ? "border-taupe bg-taupe/10 text-ink"
+                    : "border-ink/14 text-ink/60 hover:border-taupe/50"
+                }`}
+              >
+                <span className="text-[13px] font-medium">{etiqueta}</span>
+                <span className="text-taupe-dark text-[11px]">
+                  {porcentaje}% de descuento
+                </span>
+              </button>
+            ))}
+          </div>
+          {campo("formaPago") ? (
+            <span role="alert" className="text-clay text-[11px]">
+              {campo("formaPago")}
+            </span>
+          ) : null}
+        </div>
+
         <div className="flex flex-col gap-[7px]">
           <Rotulo>MONTO DE LA COMPRA</Rotulo>
           <input
@@ -243,8 +294,10 @@ function Captura({
           <span className="text-ink/40 text-[11px]">
             {campo("montoOro") ??
               (descuento > 0
-                ? `Descuento de ${descuento.toFixed(2)} (${descuentoOro}% en oro).`
-                : `Lleva ${descuentoOro}% de descuento en oro.`)}
+                ? `Descuento de ${descuento.toFixed(2)} (${pct}%).`
+                : forma
+                  ? `Lleva ${pct}% de descuento.`
+                  : `Elige la forma de pago: ${visa}% visa, ${transferencia}% transferencia.`)}
           </span>
         </div>
       </div>

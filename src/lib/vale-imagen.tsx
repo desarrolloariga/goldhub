@@ -8,7 +8,6 @@ import {
 } from "@/lib/fuentes-datos";
 import {
   AVISO_LEGAL,
-  notaFormasPago,
   MARCA,
   componerMarca,
   palabrasDeMarca,
@@ -45,12 +44,6 @@ export type DatosImagenVale = {
    */
   telefono?: string | null;
   /**
-   * Los descuentos por forma de pago, ya compuestos. Nulo = no se anuncian.
-   * Llega hecho y no como dos números porque el mismo texto se imprime en el
-   * PNG y en la tarjeta, y componerlo dos veces los dejaría desalineados.
-   */
-  formasPago?: string | null;
-  /**
    * Su logotipo como data URL, ya empotrado (ver `logoEmpotrado` en
    * lib/logos.ts). Nulo = la tienda no tiene, y firma con su nombre.
    */
@@ -58,7 +51,9 @@ export type DatosImagenVale = {
   portador: string;
   tipoEtiqueta: string;
   estado: EstadoVale;
-  descuentoOro: number;
+  /** Los dos porcentajes de la red. Cero = esa forma de pago no se anuncia. */
+  visa: number;
+  transferencia: number;
   /** Ya formateada, p. ej. "16 sep 2026". */
   vigencia: string;
   /** PNG del QR como data URL. */
@@ -295,39 +290,83 @@ function Marca({
  * esperarlo sobre toda la compra.
  */
 function Descuento({
-  oro,
+  visa,
+  transferencia,
   cifra,
   rotulo,
 }: {
-  oro: number;
+  visa: number;
+  transferencia: number;
   cifra: number;
   rotulo: number;
 }) {
+  /*
+   * Las dos con el mismo peso y separadas por una regla.
+   *
+   * Antes era una sola cifra —el 15% de oro— porque solo había un
+   * porcentaje. Ahora el descuento depende de cómo se pague, y destacar uno
+   * de los dos haría que el otro pareciera la letra pequeña de una oferta
+   * que en realidad son dos.
+   *
+   * Si una forma de pago se retira (porcentaje en cero) queda la otra sola y
+   * centrada, sin la regla: un divisor con nada al lado se lee como un error
+   * de impresión.
+   */
+  const cajas = [
+    visa > 0 ? { pct: visa, rotulo: "VISA" } : null,
+    transferencia > 0 ? { pct: transferencia, rotulo: "TRANSFERENCIA" } : null,
+  ].filter((c): c is { pct: number; rotulo: string } => c !== null);
+
+  if (!cajas.length) return <div style={{ display: "flex" }} />;
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-      <span
-        style={{
-          fontFamily: SERIF,
-          fontWeight: 600,
-          fontSize: cifra,
-          lineHeight: 1,
-          color: PALETA.tinta,
-        }}
-      >
-        {oro}%
-      </span>
-      <span
-        style={{
-          fontFamily: SANS,
-          fontSize: rotulo,
-          letterSpacing: rotulo * 0.22,
-          color: PALETA.gris,
-          marginTop: rotulo * 0.7,
-          marginLeft: rotulo * 0.22,
-        }}
-      >
-        EN ORO
-      </span>
+    <div style={{ display: "flex", alignItems: "center" }}>
+      {cajas.map((c, i) => (
+        <div key={c.rotulo} style={{ display: "flex", alignItems: "center" }}>
+          {i > 0 ? (
+            <div
+              style={{
+                display: "flex",
+                width: 1,
+                height: cifra * 0.78,
+                backgroundColor: PALETA.divisor,
+                margin: `0 ${cifra * 0.3}px`,
+              }}
+            />
+          ) : null}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            <span
+              style={{
+                fontFamily: SERIF,
+                fontWeight: 600,
+                fontSize: cifra,
+                lineHeight: 1,
+                color: PALETA.tinta,
+              }}
+            >
+              {c.pct}%
+            </span>
+            <span
+              style={{
+                fontFamily: SANS,
+                fontSize: rotulo,
+                letterSpacing: rotulo * 0.18,
+                color: PALETA.gris,
+                marginTop: rotulo * 0.7,
+                marginLeft: rotulo * 0.18,
+              }}
+            >
+              {c.rotulo}
+            </span>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -489,7 +528,12 @@ export function tarjetaVertical(vale: DatosImagenVale): ReactElement {
         }}
       />
 
-      <Descuento oro={vale.descuentoOro} cifra={110} rotulo={19} />
+      <Descuento
+        visa={vale.visa}
+        transferencia={vale.transferencia}
+        cifra={92}
+        rotulo={16}
+      />
 
       <div
         style={{
@@ -544,24 +588,6 @@ export function tarjetaVertical(vale: DatosImagenVale): ReactElement {
       <span style={{ fontSize: 16, color: PALETA.gris }}>
         {leyendaVigencia(vale.estado, vale.vigencia)}
       </span>
-      {/*
-        Va en acento y no en gris como el aviso legal de abajo: es una oferta
-        y no letra pequeña. Y va aquí, junto a la vigencia, porque es lo que
-        el cliente necesita saber antes de decidir cómo paga, no después.
-      */}
-      {vale.formasPago ? (
-        <span
-          style={{
-            fontSize: 15,
-            fontWeight: 500,
-            color: PALETA.acento,
-            marginTop: 9,
-            textAlign: "center",
-          }}
-        >
-          {vale.formasPago}
-        </span>
-      ) : null}
       <span
         style={{
           fontSize: 13,
@@ -708,7 +734,12 @@ export function tarjetaApaisada(vale: DatosImagenVale): ReactElement {
             }}
           />
 
-          <Descuento oro={vale.descuentoOro} cifra={96} rotulo={17} />
+          <Descuento
+            visa={vale.visa}
+            transferencia={vale.transferencia}
+            cifra={78}
+            rotulo={15}
+          />
 
           <span
             style={{
@@ -725,18 +756,6 @@ export function tarjetaApaisada(vale: DatosImagenVale): ReactElement {
           <span style={{ fontSize: 15, color: PALETA.gris, marginTop: 9 }}>
             {vale.tipoEtiqueta} · {leyendaVigencia(vale.estado, vale.vigencia)}
           </span>
-          {vale.formasPago ? (
-            <span
-              style={{
-                fontSize: 14,
-                fontWeight: 500,
-                color: PALETA.acento,
-                marginTop: 10,
-              }}
-            >
-              {vale.formasPago}
-            </span>
-          ) : null}
         </div>
 
         <div

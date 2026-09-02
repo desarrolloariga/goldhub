@@ -52,6 +52,11 @@ const EsquemaRedencion = z.object({
       (v) => v === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
       "El correo no tiene un formato válido.",
     ),
+  // Decide el porcentaje, así que no admite vacío ni valor por omisión: sin
+  // saber cómo se pagó no hay descuento que calcular.
+  formaPago: z.enum(["visa", "transferencia"], {
+    message: "Indica cómo se pagó la compra.",
+  }),
   referidoPor: z
     .string()
     .trim()
@@ -101,6 +106,7 @@ export async function registrarRedencion(
     telefono: formData.get("telefono") ?? "",
     correo: formData.get("correo") ?? "",
     montoOro: formData.get("montoOro") ?? "",
+    formaPago: formData.get("formaPago") ?? "",
     referidoPor: formData.get("referidoPor") ?? "",
   });
 
@@ -125,6 +131,7 @@ export async function registrarRedencion(
     p_correo: d.correo,
     p_monto_oro: d.montoOro,
     p_referido_por: d.referidoPor,
+    p_forma_pago: d.formaPago,
   });
 
   if (error) {

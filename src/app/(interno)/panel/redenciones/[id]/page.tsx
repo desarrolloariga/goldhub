@@ -93,7 +93,12 @@ export default async function PaginaRedencion({
               descuento: Number(redencion.descuento_aplicado),
               referidoPor: redencion.referido_por,
             }}
-            descuentoOro={Number(vale.descuento_oro_pct)}
+            // El de esa compra, no el del vale: corregir el monto no
+            // cambia el trato ya cerrado. Nulo en las compras anteriores al
+            // descuento por forma de pago, que siguen con el del vale.
+            descuentoOro={
+              redencion.descuento_pct ?? Number(vale.descuento_oro_pct)
+            }
           />
         </Tarjeta>
 

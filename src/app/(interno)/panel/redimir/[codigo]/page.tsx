@@ -6,6 +6,7 @@ import { Tarjeta } from "@/components/ui/tarjeta";
 import { ChipTipo } from "@/components/vales/chip-tipo";
 import { requerirSesion } from "@/lib/auth/guardas";
 import { validarVale } from "@/lib/datos/vales";
+import { tarifaVigente } from "@/lib/datos/configuracion";
 import { normalizarCodigo } from "@/lib/codigo-vale";
 import { fecha } from "@/lib/format";
 import { ETIQUETA_SEGMENTO, ETIQUETA_TIPO } from "@/lib/supabase/types";
@@ -27,7 +28,10 @@ export default async function PaginaValidacion({
 
   const codigo = normalizarCodigo(decodeURIComponent(crudo));
 
-  const vale = await validarVale(codigo);
+  const [vale, tarifa] = await Promise.all([
+    validarVale(codigo),
+    tarifaVigente(),
+  ]);
 
   const volver = (
     <Link
@@ -66,8 +70,6 @@ export default async function PaginaValidacion({
     );
   }
 
-  const descuentoOro = Number(vale.descuento_oro_pct);
-
   const ficha = (
     <Tarjeta
       className={`flex flex-col gap-5 p-6 ${vale.redimible ? "" : "border-clay/30"}`}
@@ -83,11 +85,22 @@ export default async function PaginaValidacion({
         <div className="border-taupe/30 bg-taupe/8 rounded-card flex items-center gap-4 border px-5 py-4">
           <Check size={22} className="text-taupe-deep shrink-0" />
           <div className="flex flex-col gap-2">
-            <span className="flex items-baseline gap-[5px]">
-              <span className="font-display text-taupe-deep text-[30px] leading-none">
-                {descuentoOro}%
+            {/* Los dos, porque el que se aplique lo decide la forma de pago
+                que la cajera elija abajo. */}
+            <span className="flex items-baseline gap-[10px]">
+              <span className="flex items-baseline gap-[4px]">
+                <span className="font-display text-taupe-deep text-[26px] leading-none">
+                  {tarifa.visa}%
+                </span>
+                <span className="text-ink/55 text-[12px]">visa</span>
               </span>
-              <span className="text-ink/55 text-[12px]">en oro</span>
+              <span className="text-ink/25 text-[12px]">·</span>
+              <span className="flex items-baseline gap-[4px]">
+                <span className="font-display text-taupe-deep text-[26px] leading-none">
+                  {tarifa.transferencia}%
+                </span>
+                <span className="text-ink/55 text-[12px]">transferencia</span>
+              </span>
             </span>
             <span className="text-ink/55 text-[12px]">
               Vigente hasta el {fecha(vale.fecha_vencimiento)}
@@ -177,7 +190,8 @@ export default async function PaginaValidacion({
             <FormularioRedencion
               codigo={vale.codigo}
               portador={vale.portador}
-              descuentoOro={descuentoOro}
+              visa={tarifa.visa}
+              transferencia={tarifa.transferencia}
             />
           </Tarjeta>
         ) : (

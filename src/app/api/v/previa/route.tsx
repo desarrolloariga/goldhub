@@ -8,7 +8,6 @@ import {
   tarjetaVertical,
   type DatosImagenVale,
 } from "@/lib/vale-imagen";
-import { notaFormasPago } from "@/lib/vale-plantilla";
 
 export const runtime = "nodejs";
 
@@ -56,15 +55,11 @@ export async function GET(request: NextRequest) {
     tienda: params.get("tienda") ?? "Joyería Mazate",
     // ?tel=  para ver el segundo paso con y sin teléfono cargado.
     telefono: params.get("tel"),
-    // ?visa= y ?transf= para verlo con y sin nota de formas de pago.
-    formasPago: notaFormasPago(
-      Number(params.get("visa") ?? 20),
-      Number(params.get("transf") ?? 25),
-    ),
     portador: "María Fernanda Solís",
     tipoEtiqueta: "Cliente existente",
     estado,
-    descuentoOro: 15,
+    visa: Number(params.get("visa") ?? 20),
+    transferencia: Number(params.get("transf") ?? 25),
     vigencia: "31 oct 2026",
     logo,
     qr: await qrDataUrl("https://ejemplo.gt/v/previa", {

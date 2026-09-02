@@ -21,9 +21,14 @@ import type { ValePorVencer } from "@/lib/supabase/types";
  */
 export function PorVencer({
   vales,
+  visa,
+  transferencia,
   mostrarEmisora = false,
 }: {
   vales: ValePorVencer[];
+  /** Los dos porcentajes de la red, para el mensaje que se reenvía. */
+  visa: number;
+  transferencia: number;
   /** El administrador ve de qué tienda es cada vale; la tienda no. */
   mostrarEmisora?: boolean;
 }) {
@@ -52,7 +57,8 @@ export function PorVencer({
             nombre: v.portador,
             codigo: v.codigo,
             token: v.token,
-            descuentoOro: Number(v.descuento_oro_pct),
+            visa,
+            transferencia,
             vigencia: fecha(v.fecha_vencimiento),
           });
 

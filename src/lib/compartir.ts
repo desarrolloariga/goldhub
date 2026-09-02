@@ -126,14 +126,17 @@ export function mensajeVale({
   nombre,
   codigo,
   token,
-  descuentoOro,
+  visa,
+  transferencia,
   vigencia,
   tienda,
 }: {
   nombre: string;
   codigo: string;
   token: string;
-  descuentoOro: number;
+  /** Los dos porcentajes de la red. Cero = esa forma de pago no se anuncia. */
+  visa: number;
+  transferencia: number;
   /** Ya formateada, p. ej. "12 sep 2026". */
   vigencia: string;
   /** La tienda que lo emitió: es donde hay que presentarlo. */
@@ -144,7 +147,14 @@ export function mensajeVale({
   return [
     `Hola ${saludo}, te compartimos tu vale de ${tienda ?? "GOLD HUB"}.`,
     "",
-    `${descuentoOro}% de descuento en oro`,
+    // Los dos porcentajes, como en el vale. Si una forma de pago se retira
+    // —porcentaje en cero— desaparece de la línea en vez de anunciarse al 0%.
+    [
+      visa > 0 ? `${visa}% con visa` : null,
+      transferencia > 0 ? `${transferencia}% por transferencia` : null,
+    ]
+      .filter(Boolean)
+      .join(" · "),
     "",
     `Código: ${codigo}`,
     `Vigente hasta el ${vigencia}`,

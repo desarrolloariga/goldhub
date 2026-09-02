@@ -10,6 +10,7 @@ import { alcanceDe } from "@/lib/auth/guardas";
 import { metricasGenerales } from "@/lib/datos/metricas";
 import { tiendaPorId } from "@/lib/datos/tiendas";
 import { valesPorVencer, valesRecientes } from "@/lib/datos/vales";
+import { tarifaVigente } from "@/lib/datos/configuracion";
 import { PorVencer } from "@/components/vales/por-vencer";
 import { fecha, monedaCompacta, monedaCorta } from "@/lib/format";
 
@@ -17,11 +18,12 @@ export default async function PaginaPanel() {
   const sesion = await requerirSesion();
   const alcance = alcanceDe(sesion);
 
-  const [metricas, recientes, tienda, porVencer] = await Promise.all([
+  const [metricas, recientes, tienda, porVencer, tarifa] = await Promise.all([
     metricasGenerales(alcance),
     valesRecientes(alcance, 6),
     sesion.tiendaId ? tiendaPorId(sesion.tiendaId) : Promise.resolve(null),
     valesPorVencer(alcance),
+    tarifaVigente(),
   ]);
 
   const conversion =
@@ -70,7 +72,12 @@ export default async function PaginaPanel() {
       {tienda && !tienda.logo_ruta ? <AvisoSinLogotipo /> : null}
 
       {/* Antes que las cifras: es lo único con fecha límite */}
-      <PorVencer vales={porVencer} mostrarEmisora={sesion.rol === "admin"} />
+      <PorVencer
+        vales={porVencer}
+        visa={tarifa.visa}
+        transferencia={tarifa.transferencia}
+        mostrarEmisora={sesion.rol === "admin"}
+      />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <TarjetaIndicador

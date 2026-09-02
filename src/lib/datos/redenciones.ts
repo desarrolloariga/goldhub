@@ -9,6 +9,10 @@ export type RedencionDetalle = {
   /** Un solo material: aquí solo se vende oro. */
   monto_oro: number;
   descuento_aplicado: number;
+  /** Cómo se pagó. Nulo en las compras anteriores al descuento por forma de pago. */
+  forma_pago: string | null;
+  /** El porcentaje que se aplicó, congelado. Nulo en esas mismas compras. */
+  descuento_pct: number | null;
   /** Quién le pasó el vale al comprador. Nulo = lo usó el propio portador. */
   referido_por: string | null;
   fecha_creacion: string;
@@ -35,7 +39,7 @@ function unico<T>(valor: T | T[] | null): T | null {
 }
 
 const SELECCION = `
-  id, monto_oro, descuento_aplicado,
+  id, monto_oro, descuento_aplicado, forma_pago, descuento_pct,
   referido_por, fecha_creacion, fecha_edicion, vale_id, tienda_id, contacto_id,
   vales!inner(codigo, tienda_id),
   contactos!inner(nombre, telefono, correo),
@@ -47,6 +51,8 @@ const SELECCION = `
 type FilaCruda = {
   id: number;
   monto_oro: number;
+  forma_pago: string | null;
+  descuento_pct: number | null;
   descuento_aplicado: number;
   /** Quién le pasó el vale al comprador. Nulo = lo usó el propio portador. */
   referido_por: string | null;
@@ -74,6 +80,8 @@ function normalizar(fila: FilaCruda): RedencionDetalle {
     id: fila.id,
     monto_oro: Number(fila.monto_oro),
     descuento_aplicado: Number(fila.descuento_aplicado),
+    forma_pago: fila.forma_pago,
+    descuento_pct: fila.descuento_pct === null ? null : Number(fila.descuento_pct),
     referido_por: fila.referido_por,
     fecha_creacion: fila.fecha_creacion,
     vale_id: fila.vale_id,

@@ -250,42 +250,64 @@ await rechaza("con el autorregistro apagado no se registra nadie", "SV008",
 // ── Redención ────────────────────────────────────────────────────────────
 console.log("\nRedención");
 
+// El porcentaje lo decide la forma de pago, no el vale: 1000 con visa al
+// 20% son 200. Antes esto eran 150, el 15% de oro que iba dentro del vale.
 const r1 = await uno(
-  `select * from smartvalehubgold.fn_registrar_redencion($1,$2,'Ana Pérez','50255512345',null,1000)`,
+  `select * from smartvalehubgold.fn_registrar_redencion($1,$2,'Ana Pérez','50255512345',null,1000,null,null,'visa')`,
   [v1.codigo, u1.id]);
-afirmar("el descuento sale del % congelado", Number(r1.descuento_aplicado) === 150,
+afirmar("el descuento sale del % de la forma de pago", Number(r1.descuento_aplicado) === 200,
   String(r1.descuento_aplicado));
+afirmar("y queda registrado con qué se pagó",
+  r1.forma_pago === "visa" && Number(r1.descuento_pct) === 20,
+  `${r1.forma_pago} ${r1.descuento_pct}`);
+
+// La misma compra por transferencia descuenta más: 1000 al 25% son 250.
+{
+  const t = await uno(
+    `select * from smartvalehubgold.fn_registrar_redencion($1,$2,'Ana Pérez','50255512345',null,1000,null,null,'transferencia')`,
+    [v1.codigo, u1.id]);
+  afirmar("y por transferencia descuenta más que con visa",
+    Number(t.descuento_aplicado) === 250, String(t.descuento_aplicado));
+}
 
 const r2 = await uno(
-  `select * from smartvalehubgold.fn_registrar_redencion($1,$2,'Ana Pérez','50255512345',null,500)`,
+  `select * from smartvalehubgold.fn_registrar_redencion($1,$2,'Ana Pérez','50255512345',null,500,null,null,'visa')`,
   [v1.codigo, u1.id]);
 afirmar("el vale no se consume: admite otra compra", !!r2 && r2.id !== r1.id);
 
 const r3 = await uno(
-  `select * from smartvalehubgold.fn_registrar_redencion($1,$2,'Otro Comprador','50255599999',null,800,'Ana')`,
+  `select * from smartvalehubgold.fn_registrar_redencion($1,$2,'Otro Comprador','50255599999',null,800,'Ana',null,'visa')`,
   [v2.codigo, u1.id]);
 afirmar("una compra de alguien que no es el portador se registra igual", !!r3);
 
 const porAdmin = await uno(
-  `select * from smartvalehubgold.fn_registrar_redencion($1,$2,'Ana Pérez','50255512345',null,100)`,
+  `select * from smartvalehubgold.fn_registrar_redencion($1,$2,'Ana Pérez','50255512345',null,100,null,null,'visa')`,
   [v1.codigo, admin.id]);
 afirmar("el admin redime sin elegir tienda: la pone el vale",
   porAdmin.tienda_id === t1.id);
 
 await rechaza("un vale no se redime en otra tienda", "SV015",
-  `select smartvalehubgold.fn_registrar_redencion($1,$2,'Ana Pérez','50255512345',null,300)`,
+  `select smartvalehubgold.fn_registrar_redencion($1,$2,'Ana Pérez','50255512345',null,300,null,null,'visa')`,
   [v1.codigo, u2.id]);
 
 await rechaza("un monto de cero no es una compra", "SV006",
-  `select smartvalehubgold.fn_registrar_redencion($1,$2,'Ana','50255512345',null,0)`,
+  `select smartvalehubgold.fn_registrar_redencion($1,$2,'Ana','50255512345',null,0,null,null,'visa')`,
   [v1.codigo, u1.id]);
 await rechaza("un vale inexistente no se redime", "SV002",
-  `select smartvalehubgold.fn_registrar_redencion('NADA-000001',$1,'Ana','50255512345',null,100)`,
+  `select smartvalehubgold.fn_registrar_redencion('NADA-000001',$1,'Ana','50255512345',null,100,null,null,'visa')`,
   [u1.id]);
+
+// Sin forma de pago no hay cálculo posible: el porcentaje sale de ella.
+await rechaza("una compra sin forma de pago no se registra", "SV006",
+  `select smartvalehubgold.fn_registrar_redencion($1,$2,'Ana','50255512345',null,100)`,
+  [v1.codigo, u1.id]);
+await rechaza("ni con una forma de pago inventada", "SV006",
+  `select smartvalehubgold.fn_registrar_redencion($1,$2,'Ana','50255512345',null,100,null,null,'efectivo')`,
+  [v1.codigo, u1.id]);
 
 await db.query(`select smartvalehubgold.fn_anular_vale($1,$2,'prueba')`, [v3.codigo, admin.id]);
 await rechaza("un vale anulado no se redime", "SV004",
-  `select smartvalehubgold.fn_registrar_redencion($1,$2,'C','50255512347',null,100)`,
+  `select smartvalehubgold.fn_registrar_redencion($1,$2,'C','50255512347',null,100,null,null,'visa')`,
   [v3.codigo, u2.id]);
 
 // ── Administración ───────────────────────────────────────────────────────
@@ -305,8 +327,10 @@ afirmar("el administrador reactiva un vale anulado", react.anulado === false);
 
 const editada = await uno(
   `select * from smartvalehubgold.fn_editar_redencion($1,$2,2000)`, [r1.id, admin.id]);
-afirmar("corregir el monto recalcula el descuento",
-  Number(editada.descuento_aplicado) === 300, String(editada.descuento_aplicado));
+// Con el porcentaje que se aplicó en ESA compra —visa, 20%—, no con el del
+// vale ni con el de hoy: corregir el monto no cambia el trato ya cerrado.
+afirmar("corregir el monto recalcula con el % de la compra",
+  Number(editada.descuento_aplicado) === 400, String(editada.descuento_aplicado));
 afirmar("y sin comprador nuevo conserva el que tenía",
   editada.contacto_id === r1.contacto_id);
 
@@ -328,7 +352,7 @@ console.log("\nValidación y métricas");
 
 const val = await uno(`select * from smartvalehubgold.fn_validar_vale($1)`, [v1.codigo]);
 afirmar("la caja ve el vale con su tienda", val.tienda === "Gold Hub Mazate");
-afirmar("y cuántas compras lleva", val.total_redenciones === 3, String(val.total_redenciones));
+afirmar("y cuántas compras lleva", val.total_redenciones === 4, String(val.total_redenciones));
 
 const valA3 = await uno(`select * from smartvalehubgold.fn_validar_vale($1)`, [a3.codigo]);
 afirmar("un vale de autorregistro no desaparece de la caja", valA3?.codigo === a3.codigo);
@@ -369,7 +393,7 @@ afirmar("y sabe si tiene logotipo", desemp.tiene_logo === false);
 
 const ventas = await uno(`select * from smartvalehubgold.fn_ventas_resumen()`);
 afirmar("el tablero de ventas suma solo oro",
-  Number(ventas.venta) > 0 && ventas.tickets === 4, `tickets ${ventas.tickets}`);
+  Number(ventas.venta) > 0 && ventas.tickets === 5, `tickets ${ventas.tickets}`);
 
 const porTienda = (await db.query(`select * from smartvalehubgold.fn_ventas_por_tienda()`)).rows;
 afirmar("y reparte por tienda de la compra", porTienda.length === 1, `${porTienda.length} filas`);

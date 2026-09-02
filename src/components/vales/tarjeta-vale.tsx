@@ -40,7 +40,9 @@ export type DatosTarjeta = {
   token: string;
   tipo: TipoVale;
   estado: EstadoVale;
-  descuentoOro: number;
+  /** Los dos porcentajes de la red. Cero = esa forma de pago no se anuncia. */
+  visa: number;
+  transferencia: number;
   portador: string;
   telefono: string;
   /** La tienda que lo emitió: firma el vale y es donde se redime. */
@@ -51,8 +53,6 @@ export type DatosTarjeta = {
    * Nulo mientras la tienda no lo cargue desde «Mi tienda».
    */
   telefonoTienda: string | null;
-  /** Descuentos por forma de pago, ya compuestos. Nulo = no se anuncian. */
-  formasPago: string | null;
   /** URL de su logotipo. Nula = firma con el nombre en tipografía. */
   logo: string | null;
   /**
@@ -90,7 +90,8 @@ export function TarjetaVale({
     nombre: vale.portador,
     codigo: vale.codigo,
     token: vale.token,
-    descuentoOro: vale.descuentoOro,
+    visa: vale.visa,
+    transferencia: vale.transferencia,
     tienda: vale.tienda,
     vigencia: vale.vigencia,
   });
@@ -203,23 +204,43 @@ export function TarjetaVale({
             style={{ backgroundColor: PALETA.acento }}
           />
 
-          {/* Una sola cifra: aquí solo se vende oro. El rótulo se queda
-              porque un porcentaje suelto invita a esperarlo sobre toda la
-              compra. Ver `Descuento` en lib/vale-imagen.tsx, que dibuja lo
-              mismo en el PNG del servidor. */}
-          <span className="flex flex-col items-center">
-            <span
-              className="font-display text-[56px] leading-none"
-              style={{ color: PALETA.tinta }}
-            >
-              {vale.descuentoOro}%
-            </span>
-            <span
-              className="mt-[7px] ml-[0.22em] text-[9.5px] tracking-[0.22em]"
-              style={{ color: PALETA.gris }}
-            >
-              EN ORO
-            </span>
+          {/* Las dos con el mismo peso: el descuento depende de cómo se
+              pague, así que destacar una haría que la otra pareciera la
+              letra pequeña de una oferta que en realidad son dos. Ver
+              `Descuento` en lib/vale-imagen.tsx, que dibuja lo mismo en el
+              PNG del servidor. */}
+          <span className="flex items-center">
+            {(
+              [
+                [vale.visa, "VISA"],
+                [vale.transferencia, "TRANSFERENCIA"],
+              ] as const
+            )
+              .filter(([pct]) => pct > 0)
+              .map(([pct, rotulo], i) => (
+                <span key={rotulo} className="flex items-center">
+                  {i > 0 ? (
+                    <span
+                      className="mx-4 h-[38px] w-px"
+                      style={{ backgroundColor: PALETA.divisor }}
+                    />
+                  ) : null}
+                  <span className="flex flex-col items-center">
+                    <span
+                      className="font-display text-[42px] leading-none"
+                      style={{ color: PALETA.tinta }}
+                    >
+                      {pct}%
+                    </span>
+                    <span
+                      className="mt-[7px] ml-[0.18em] text-[8.5px] tracking-[0.18em]"
+                      style={{ color: PALETA.gris }}
+                    >
+                      {rotulo}
+                    </span>
+                  </span>
+                </span>
+              ))}
           </span>
 
           {/* El QR lleva un enlace, no el código: cualquier cámara lo abre */}
@@ -254,14 +275,6 @@ export function TarjetaVale({
           <span className="text-[11.5px]" style={{ color: PALETA.gris }}>
             {leyendaVigencia(vale.estado, vale.vigencia)}
           </span>
-          {vale.formasPago ? (
-            <span
-              className="mt-[7px] text-center text-[11px] font-medium"
-              style={{ color: PALETA.acento }}
-            >
-              {vale.formasPago}
-            </span>
-          ) : null}
           <span
             className="mt-[6px] text-center text-[10px] leading-relaxed opacity-75"
             style={{ color: PALETA.gris }}

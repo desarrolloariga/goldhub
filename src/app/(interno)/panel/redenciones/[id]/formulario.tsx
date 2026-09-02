@@ -132,8 +132,8 @@ export function FormularioEdicion({
             <span className="text-ink/40 text-[11px]">
               {campo("montoOro") ??
                 (descuento > 0
-                  ? `Descuento de ${descuento.toFixed(2)} (${descuentoOro}% en oro), recalculado al guardar.`
-                  : `Lleva ${descuentoOro}% de descuento en oro.`)}
+                  ? `Descuento de ${descuento.toFixed(2)} (${descuentoOro}%), recalculado al guardar.`
+                  : `Lleva ${descuentoOro}% de descuento.`)}
             </span>
           </div>
         </div>

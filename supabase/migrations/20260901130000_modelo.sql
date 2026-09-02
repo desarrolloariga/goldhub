@@ -314,6 +314,20 @@ create table if not exists smartvalehubgold.redenciones (
   monto_oro          numeric(12,2) not null,
   descuento_aplicado numeric(12,2) not null,
 
+  -- Cómo pagó, que es lo que decide el porcentaje: la red descuenta más por
+  -- transferencia que con tarjeta. Se guarda además del porcentaje aplicado
+  -- porque son dos preguntas distintas —cuánto se descontó y por qué— y sin
+  -- esto no se puede saber después qué forma de pago mueve más venta.
+  --
+  -- Nula en las compras anteriores al cambio: entonces el descuento era uno
+  -- solo para todos y no había forma de pago que registrar. Se deja nula en
+  -- vez de inventarles una, que sería afirmar algo que nadie preguntó.
+  forma_pago         text,
+  -- El porcentaje que se aplicó, congelado igual que el del vale: si mañana
+  -- la red cambia sus tarifas, una compra vieja tiene que seguir explicando
+  -- su propio descuento.
+  descuento_pct      numeric(5,2),
+
   -- Quién le pasó el vale. Nulo = lo usó el propio portador.
   referido_por       text,
 
@@ -325,8 +339,38 @@ create table if not exists smartvalehubgold.redenciones (
 
   constraint redenciones_monto_positivo check (monto_oro > 0),
   constraint redenciones_descuento_no_negativo check (descuento_aplicado >= 0),
-  constraint redenciones_descuento_no_supera check (descuento_aplicado <= monto_oro)
+  constraint redenciones_descuento_no_supera check (descuento_aplicado <= monto_oro),
+  constraint redenciones_forma_pago_valida check (
+    forma_pago is null or forma_pago in ('visa', 'transferencia')
+  ),
+  constraint redenciones_descuento_pct_rango check (
+    descuento_pct is null or (descuento_pct >= 0 and descuento_pct <= 100)
+  )
 );
+
+-- Las dos columnas de arriba llegaron después de que la tabla estuviera
+-- publicada, y `create table if not exists` no toca una tabla que ya existe:
+-- sin esto, la base con datos se quedaría sin ellas mientras que una recién
+-- creada sí las tendría, y la misma migración daría dos esquemas distintos.
+alter table smartvalehubgold.redenciones
+  add column if not exists forma_pago    text,
+  add column if not exists descuento_pct numeric(5,2);
+
+do $$
+begin
+  alter table smartvalehubgold.redenciones
+    add constraint redenciones_forma_pago_valida check (
+      forma_pago is null or forma_pago in ('visa', 'transferencia'));
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  alter table smartvalehubgold.redenciones
+    add constraint redenciones_descuento_pct_rango check (
+      descuento_pct is null or (descuento_pct >= 0 and descuento_pct <= 100));
+exception when duplicate_object then null;
+end $$;
 
 create index if not exists redenciones_vale_idx on smartvalehubgold.redenciones (vale_id);
 create index if not exists redenciones_tienda_idx on smartvalehubgold.redenciones (tienda_id);

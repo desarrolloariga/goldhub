@@ -15,7 +15,6 @@ import { valePorCodigo } from "@/lib/datos/vales";
 import { fecha, fechaHora, moneda } from "@/lib/format";
 import { versionImagen } from "@/lib/compartir";
 import { tarifaVigente } from "@/lib/datos/configuracion";
-import { notaFormasPago } from "@/lib/vale-plantilla";
 import { urlLogo } from "@/lib/logos";
 import { ETIQUETA_SEGMENTO, ETIQUETA_TIPO } from "@/lib/supabase/types";
 
@@ -147,10 +146,10 @@ export default async function PaginaVale({
             token: vale.token,
             tipo: vale.tipo,
             estado: vale.estado,
-            descuentoOro: Number(vale.descuento_oro_pct),
+            visa: tarifa.visa,
+            transferencia: tarifa.transferencia,
             tienda: vale.tienda,
             telefonoTienda: vale.tienda_telefono,
-            formasPago: notaFormasPago(tarifa.visa, tarifa.transferencia),
             logo: urlLogo(vale),
             version: versionImagen(vale.tienda_actualizada_en, vale.tienda_logo_actualizado_en),
             portador: vale.portador,

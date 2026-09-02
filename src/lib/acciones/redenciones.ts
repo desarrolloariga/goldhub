@@ -1,6 +1,5 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -68,6 +67,26 @@ const EsquemaRedencion = z.object({
 export type EstadoRedencion = {
   error?: string;
   campos?: Record<string, string>;
+  /**
+   * La compra que acaba de quedar registrada.
+   *
+   * Vuelve al formulario en vez de irse por una redirección con `?ok=1`. En
+   * caja hace falta decirle al cliente cuánto se le descontó, y eso solo se
+   * sabe después de guardar: por la URL no cabía más que un «listo».
+   *
+   * `id` es además lo que deja el formulario limpio: cambia con cada compra
+   * y se usa como `key` de los campos, así que React los rehace en vez de
+   * quedarse con el importe de la compra anterior escrito.
+   */
+  ok?: {
+    id: number;
+    codigo: string;
+    comprador: string;
+    monto: number;
+    descuento: number;
+    /** Cuántas compras lleva ya el vale, contando esta. */
+    compras: number;
+  };
 } | null;
 
 export async function registrarRedencion(
@@ -98,7 +117,7 @@ export async function registrarRedencion(
 
   // La tienda no se manda: la pone la base a partir del vale, que es quien
   // la decide. Un vale solo se redime en la tienda que lo emitió.
-  const { error } = await db().rpc("fn_registrar_redencion", {
+  const { data, error } = await db().rpc("fn_registrar_redencion", {
     p_codigo: d.codigo,
     p_usuario_id: sesion.usuarioId,
     p_nombre: d.nombre,
@@ -119,5 +138,23 @@ export async function registrarRedencion(
   revalidatePath("/panel");
   revalidatePath("/panel/redenciones");
   revalidatePath(`/panel/vales/${d.codigo}`);
-  redirect(`/panel/redimir/${d.codigo}?ok=1`);
+  revalidatePath(`/panel/redimir/${d.codigo}`);
+
+  // Cuántas van con esta. Es una consulta de más, pero es la cifra que dice
+  // si un vale se está compartiendo, y en caja se ve gratis.
+  const { count } = await db()
+    .from("redenciones")
+    .select("id", { count: "exact", head: true })
+    .eq("vale_id", data.vale_id);
+
+  return {
+    ok: {
+      id: data.id,
+      codigo: d.codigo,
+      comprador: d.nombre,
+      monto: Number(data.monto_oro),
+      descuento: Number(data.descuento_aplicado),
+      compras: count ?? 1,
+    },
+  };
 }

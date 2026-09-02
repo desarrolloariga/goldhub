@@ -21,11 +21,9 @@ export async function generateMetadata({
 
 export default async function PaginaValidacion({
   params,
-  searchParams,
 }: PageProps<"/panel/redimir/[codigo]">) {
   await requerirSesion();
   const { codigo: crudo } = await params;
-  const { ok } = await searchParams;
 
   const codigo = normalizarCodigo(decodeURIComponent(crudo));
 
@@ -156,20 +154,6 @@ export default async function PaginaValidacion({
     <>
       {volver}
 
-      {ok ? (
-        <div className="border-taupe/35 bg-taupe/8 rounded-card flex flex-wrap items-center gap-x-4 gap-y-2 border px-4 py-3">
-          <Check size={17} className="text-taupe-deep" />
-          <span className="text-taupe-deep flex-1 text-[13px]">
-            Compra registrada contra {vale.codigo}.
-          </span>
-          <Link
-            href={`/panel/vales/${vale.codigo}`}
-            className="text-taupe-dark text-[12.5px] underline"
-          >
-            Ver el historial del vale
-          </Link>
-        </div>
-      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:items-start">
         {ficha}
@@ -217,16 +201,6 @@ export default async function PaginaValidacion({
       </div>
 
       {/* Los montos de la compra se muestran ya registrados en el vale */}
-      {ok ? (
-        <p className="text-ink/40 m-0 text-center text-[11.5px]">
-          El vale sigue vigente y admite más compras. Total acumulado y detalle
-          en{" "}
-          <Link href={`/panel/vales/${vale.codigo}`} className="underline">
-            su ficha
-          </Link>
-          .
-        </p>
-      ) : null}
     </>
   );
 }

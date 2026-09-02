@@ -8,6 +8,7 @@ import {
 } from "@/lib/fuentes-datos";
 import {
   AVISO_LEGAL,
+  notaFormasPago,
   MARCA,
   componerMarca,
   palabrasDeMarca,
@@ -43,6 +44,12 @@ export type DatosImagenVale = {
    * con su texto de siempre en vez de con un contacto vacío.
    */
   telefono?: string | null;
+  /**
+   * Los descuentos por forma de pago, ya compuestos. Nulo = no se anuncian.
+   * Llega hecho y no como dos números porque el mismo texto se imprime en el
+   * PNG y en la tarjeta, y componerlo dos veces los dejaría desalineados.
+   */
+  formasPago?: string | null;
   /**
    * Su logotipo como data URL, ya empotrado (ver `logoEmpotrado` en
    * lib/logos.ts). Nulo = la tienda no tiene, y firma con su nombre.
@@ -537,6 +544,24 @@ export function tarjetaVertical(vale: DatosImagenVale): ReactElement {
       <span style={{ fontSize: 16, color: PALETA.gris }}>
         {leyendaVigencia(vale.estado, vale.vigencia)}
       </span>
+      {/*
+        Va en acento y no en gris como el aviso legal de abajo: es una oferta
+        y no letra pequeña. Y va aquí, junto a la vigencia, porque es lo que
+        el cliente necesita saber antes de decidir cómo paga, no después.
+      */}
+      {vale.formasPago ? (
+        <span
+          style={{
+            fontSize: 15,
+            fontWeight: 500,
+            color: PALETA.acento,
+            marginTop: 9,
+            textAlign: "center",
+          }}
+        >
+          {vale.formasPago}
+        </span>
+      ) : null}
       <span
         style={{
           fontSize: 13,
@@ -700,6 +725,18 @@ export function tarjetaApaisada(vale: DatosImagenVale): ReactElement {
           <span style={{ fontSize: 15, color: PALETA.gris, marginTop: 9 }}>
             {vale.tipoEtiqueta} · {leyendaVigencia(vale.estado, vale.vigencia)}
           </span>
+          {vale.formasPago ? (
+            <span
+              style={{
+                fontSize: 14,
+                fontWeight: 500,
+                color: PALETA.acento,
+                marginTop: 10,
+              }}
+            >
+              {vale.formasPago}
+            </span>
+          ) : null}
         </div>
 
         <div

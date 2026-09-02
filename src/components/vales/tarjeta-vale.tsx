@@ -51,6 +51,8 @@ export type DatosTarjeta = {
    * Nulo mientras la tienda no lo cargue desde «Mi tienda».
    */
   telefonoTienda: string | null;
+  /** Descuentos por forma de pago, ya compuestos. Nulo = no se anuncian. */
+  formasPago: string | null;
   /** URL de su logotipo. Nula = firma con el nombre en tipografía. */
   logo: string | null;
   /**
@@ -252,6 +254,14 @@ export function TarjetaVale({
           <span className="text-[11.5px]" style={{ color: PALETA.gris }}>
             {leyendaVigencia(vale.estado, vale.vigencia)}
           </span>
+          {vale.formasPago ? (
+            <span
+              className="mt-[7px] text-center text-[11px] font-medium"
+              style={{ color: PALETA.acento }}
+            >
+              {vale.formasPago}
+            </span>
+          ) : null}
           <span
             className="mt-[6px] text-center text-[10px] leading-relaxed opacity-75"
             style={{ color: PALETA.gris }}

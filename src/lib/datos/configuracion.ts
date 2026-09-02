@@ -29,6 +29,14 @@ export type Tarifa = {
   /** Meses que dura un vale desde que se emite. */
   mesesVigencia: number;
   /**
+   * Descuentos por forma de pago, que se anuncian en el vale pero no los
+   * calcula la caja: no sustituyen al de oro, se suman a las condiciones que
+   * el cliente tiene que saber antes de llegar a pagar. Cero = no se
+   * anuncian.
+   */
+  visa: number;
+  transferencia: number;
+  /**
    * Día de cierre de la campaña, si lo hay. Con fecha de corte la ventana de
    * días no se usa: el vale muere ese día lo emita quien lo emita. Nulo =
    * ventana rodante de `diasVigencia`.
@@ -69,6 +77,8 @@ export async function tarifaVigente(): Promise<Tarifa> {
   return {
     oro: leer("descuento_oro", 15),
     mesesVigencia: leer("meses_vigencia_vale", 1),
+    visa: leer("descuento_visa", 0),
+    transferencia: leer("descuento_transferencia", 0),
     vigenciaHasta: dia,
     // Se lee como mediodía para que el formateo a hora de Guatemala no pueda
     // cruzar a la víspera: "2026-10-31" a secas es medianoche UTC.

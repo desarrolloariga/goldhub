@@ -367,7 +367,15 @@ values
   ('dias_aviso_vencimiento', '7', 'numero', 'vales',
    'Con cuántos días de antelación se avisa de un vale por vencer.'),
   ('horas_sesion', '12', 'numero', 'seguridad',
-   'Duración de una sesión sin actividad.')
+   'Duración de una sesión sin actividad.'),
+  -- Descuentos por forma de pago. No sustituyen al de oro ni los calcula la
+  -- caja: van impresos en el vale como nota, porque son condiciones de la
+  -- red que el cliente tiene que saber antes de llegar a pagar. Vacío o cero
+  -- deja de anunciarlos, sin dejar hueco.
+  ('descuento_visa', '20', 'numero', 'vales',
+   'Porcentaje por pago con visa. Se anuncia en el vale; no lo aplica la caja.'),
+  ('descuento_transferencia', '25', 'numero', 'vales',
+   'Porcentaje por pago con transferencia. Se anuncia en el vale; no lo aplica la caja.')
 on conflict (clave) do nothing;
 
 -- La vigencia pasó de contarse en días a contarse en meses: «vence el 2 de

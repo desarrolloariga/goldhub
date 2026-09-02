@@ -6,6 +6,8 @@ import { valePorToken } from "@/lib/datos/vales";
 import { urlImagenVale, urlPublicaVale, versionImagen } from "@/lib/compartir";
 import { fecha } from "@/lib/format";
 import { urlLogo } from "@/lib/logos";
+import { tarifaVigente } from "@/lib/datos/configuracion";
+import { notaFormasPago } from "@/lib/vale-plantilla";
 
 /**
  * Cara pública del vale: lo que abre quien recibe el enlace por WhatsApp.
@@ -66,7 +68,10 @@ export default async function PaginaPublicaVale({
   params,
 }: PageProps<"/v/[token]">) {
   const { token } = await params;
-  const vale = await valePorToken(decodeURIComponent(token));
+  const [vale, tarifa] = await Promise.all([
+    valePorToken(decodeURIComponent(token)),
+    tarifaVigente(),
+  ]);
 
   if (!vale) notFound();
 
@@ -85,6 +90,7 @@ export default async function PaginaPublicaVale({
             descuentoOro: Number(vale.descuento_oro_pct),
             tienda: vale.tienda,
             telefonoTienda: vale.tienda_telefono,
+            formasPago: notaFormasPago(tarifa.visa, tarifa.transferencia),
             logo: urlLogo(vale),
             version: versionImagen(vale.tienda_actualizada_en, vale.tienda_logo_actualizado_en),
             portador: vale.portador,

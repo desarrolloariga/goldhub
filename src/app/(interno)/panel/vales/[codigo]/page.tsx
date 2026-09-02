@@ -14,6 +14,8 @@ import { redencionesDeVale } from "@/lib/datos/redenciones";
 import { valePorCodigo } from "@/lib/datos/vales";
 import { fecha, fechaHora, moneda } from "@/lib/format";
 import { versionImagen } from "@/lib/compartir";
+import { tarifaVigente } from "@/lib/datos/configuracion";
+import { notaFormasPago } from "@/lib/vale-plantilla";
 import { urlLogo } from "@/lib/logos";
 import { ETIQUETA_SEGMENTO, ETIQUETA_TIPO } from "@/lib/supabase/types";
 
@@ -41,7 +43,10 @@ export default async function PaginaVale({
     notFound();
   }
 
-  const redenciones = await redencionesDeVale(vale.id);
+  const [redenciones, tarifa] = await Promise.all([
+    redencionesDeVale(vale.id),
+    tarifaVigente(),
+  ]);
 
   const datos: [string, string][] = [
     ["TIPO", `${vale.tipo} · ${ETIQUETA_TIPO[vale.tipo]}`],
@@ -145,6 +150,7 @@ export default async function PaginaVale({
             descuentoOro: Number(vale.descuento_oro_pct),
             tienda: vale.tienda,
             telefonoTienda: vale.tienda_telefono,
+            formasPago: notaFormasPago(tarifa.visa, tarifa.transferencia),
             logo: urlLogo(vale),
             version: versionImagen(vale.tienda_actualizada_en, vale.tienda_logo_actualizado_en),
             portador: vale.portador,

@@ -267,7 +267,7 @@ export function pasos(telefono?: string | null): Paso[] {
       numero: 2,
       trazos: ICONOS.escaner,
       texto: tel
-        ? `Escríbele al ${tel} o muestra este código en caja.`
+        ? `Escríbele al ${tel} y envía este código.`
         : "Muestra este código en caja antes de pagar.",
     },
     {
@@ -276,6 +276,25 @@ export function pasos(telefono?: string | null): Paso[] {
       texto: "Disfruta tu descuento inmediato.",
     },
   ];
+}
+
+/**
+ * Los descuentos por forma de pago, listos para imprimir.
+ *
+ * No sustituyen al de oro ni los calcula la caja: son condiciones de la red
+ * que el cliente tiene que saber antes de llegar a pagar, así que van como
+ * una nota y no como un paso.
+ *
+ * Se compone solo con lo que tenga porcentaje. En cero no se anuncia, que es
+ * la forma de retirar una forma de pago sin dejar un «0%» impreso.
+ */
+export function notaFormasPago(visa: number, transferencia: number): string | null {
+  const partes = [
+    visa > 0 ? `${visa}% visa` : null,
+    transferencia > 0 ? `${transferencia}% transferencia` : null,
+  ].filter(Boolean);
+
+  return partes.length ? `Descuentos ${partes.join(" y ")}.` : null;
 }
 
 export const TITULO_PASOS = "CÓMO USARLO";

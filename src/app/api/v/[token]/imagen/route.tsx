@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { valePorToken } from "@/lib/datos/vales";
 import { qrDataUrl } from "@/lib/qr";
+import { tarifaVigente } from "@/lib/datos/configuracion";
+import { notaFormasPago } from "@/lib/vale-plantilla";
 import { urlPublicaVale } from "@/lib/compartir";
 import { fecha } from "@/lib/format";
 import { logoEmpotrado } from "@/lib/logos";
@@ -35,7 +37,10 @@ export async function GET(
   { params }: RouteContext<"/api/v/[token]/imagen">,
 ) {
   const { token } = await params;
-  const vale = await valePorToken(decodeURIComponent(token));
+  const [vale, tarifa] = await Promise.all([
+    valePorToken(decodeURIComponent(token)),
+    tarifaVigente(),
+  ]);
 
   if (!vale) {
     return NextResponse.json({ error: "Vale no encontrado." }, { status: 404 });
@@ -55,6 +60,7 @@ export async function GET(
     vigencia: fecha(vale.fecha_vencimiento),
     tienda: vale.tienda,
     telefono: vale.tienda_telefono,
+    formasPago: notaFormasPago(tarifa.visa, tarifa.transferencia),
     // Empotrado y no por URL: Satori tendría que ir a buscarlo en mitad del
     // render, y si esa petición falla el vale sale sin logotipo. Ver
     // `logoEmpotrado` en lib/logos.ts.

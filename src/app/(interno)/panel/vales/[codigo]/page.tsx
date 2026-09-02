@@ -144,6 +144,7 @@ export default async function PaginaVale({
             estado: vale.estado,
             descuentoOro: Number(vale.descuento_oro_pct),
             tienda: vale.tienda,
+            telefonoTienda: vale.tienda_telefono,
             logo: urlLogo(vale),
             version: versionImagen(vale.tienda_actualizada_en, vale.tienda_logo_actualizado_en),
             portador: vale.portador,

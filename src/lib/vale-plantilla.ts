@@ -245,19 +245,38 @@ export type Paso = {
   texto: string;
 };
 
-export const PASOS: Paso[] = [
-  { numero: 1, trazos: ICONOS.asesora, texto: "Contacta a tu asesora." },
-  {
-    numero: 2,
-    trazos: ICONOS.escaner,
-    texto: "Muestra este código en caja antes de pagar.",
-  },
-  {
-    numero: 3,
-    trazos: ICONOS.etiqueta,
-    texto: "Disfruta tu descuento inmediato.",
-  },
-];
+/**
+ * Los tres pasos, con el teléfono de la tienda incrustado en el segundo.
+ *
+ * Es una función y no una constante porque el segundo paso depende de la
+ * tienda que emite: el número sale del maestro de tiendas, así que cada vale
+ * lleva el de la suya.
+ *
+ * Sin teléfono cargado el paso se queda con su texto de siempre. No se deja
+ * un hueco ni un guion: hoy la mayoría de las tiendas todavía no lo tienen
+ * puesto, y un vale que anuncia un contacto vacío es peor que uno que no lo
+ * anuncia. Cada tienda lo carga desde «Mi tienda» y sus vales lo estrenan
+ * sin que haya que tocar nada aquí.
+ */
+export function pasos(telefono?: string | null): Paso[] {
+  const tel = telefono?.trim();
+
+  return [
+    { numero: 1, trazos: ICONOS.asesora, texto: "Contacta a tu asesora." },
+    {
+      numero: 2,
+      trazos: ICONOS.escaner,
+      texto: tel
+        ? `Escríbele al ${tel} o muestra este código en caja.`
+        : "Muestra este código en caja antes de pagar.",
+    },
+    {
+      numero: 3,
+      trazos: ICONOS.etiqueta,
+      texto: "Disfruta tu descuento inmediato.",
+    },
+  ];
+}
 
 export const TITULO_PASOS = "CÓMO USARLO";
 

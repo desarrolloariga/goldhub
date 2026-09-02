@@ -16,7 +16,7 @@ import { FirmaMarca, SelloCompartir } from "@/components/vales/firma-marca";
 import {
   AVISO_LEGAL,
   PALETA,
-  PASOS,
+  pasos,
   TITULO_PASOS,
   type TrazoIcono,
   leyendaVigencia,
@@ -45,6 +45,12 @@ export type DatosTarjeta = {
   telefono: string;
   /** La tienda que lo emitió: firma el vale y es donde se redime. */
   tienda: string;
+  /*
+   * El de la tienda, no el del portador —que es el `telefono` de arriba—.
+   * Va impreso en el segundo paso para que el cliente sepa a quién escribir.
+   * Nulo mientras la tienda no lo cargue desde «Mi tienda».
+   */
+  telefonoTienda: string | null;
   /** URL de su logotipo. Nula = firma con el nombre en tipografía. */
   logo: string | null;
   /**
@@ -269,7 +275,7 @@ export function TarjetaVale({
                 {TITULO_PASOS}
               </span>
               <ol className="m-0 flex list-none flex-col gap-[7px] p-0">
-                {PASOS.map((paso) => (
+                {pasos(vale.telefonoTienda).map((paso) => (
                   <li key={paso.numero} className="flex items-center">
                     <Icono trazos={paso.trazos} />
                     <span

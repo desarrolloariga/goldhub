@@ -256,6 +256,8 @@ export type Database = {
           tienda_id: number;
           tienda: string;
           tienda_prefijo: string;
+          /** Con el que el cliente contacta a su asesora. Nulo = sin cargar. */
+          tienda_telefono: string | null;
           /** Del bucket de logotipos. Nulo = la tienda no subió ninguno. */
           tienda_logo_ruta: string | null;
           tienda_logo_actualizado_en: string | null;

@@ -13,7 +13,7 @@ import {
   palabrasDeMarca,
   SELLO,
   PALETA,
-  PASOS,
+  pasos,
   TITULO_PASOS,
   type TrazoIcono,
   leyendaVigencia,
@@ -38,6 +38,11 @@ export type DatosImagenVale = {
   codigo: string;
   /** La tienda que lo emitió: es su identidad la que firma el vale. */
   tienda?: string;
+  /**
+   * Teléfono de la tienda, para el segundo paso. Sin él, ese paso se imprime
+   * con su texto de siempre en vez de con un contacto vacío.
+   */
+  telefono?: string | null;
   /**
    * Su logotipo como data URL, ya empotrado (ver `logoEmpotrado` en
    * lib/logos.ts). Nulo = la tienda no tiene, y firma con su nombre.
@@ -580,7 +585,7 @@ export function tarjetaVertical(vale: DatosImagenVale): ReactElement {
               {TITULO_PASOS}
             </span>
           </div>
-          {PASOS.map((paso) => (
+          {pasos(vale.telefono).map((paso) => (
             <div
               key={paso.numero}
               style={{

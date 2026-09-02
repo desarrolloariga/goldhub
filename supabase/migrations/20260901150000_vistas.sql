@@ -80,6 +80,10 @@ select
   -- El logotipo viaja con el vale porque lo lleva impreso: el PNG y el PDF
   -- lo componen en el mismo render en el que leen el vale, y una segunda
   -- consulta por cada tarjeta compartida no la paga nadie.
+  -- El teléfono con el que el cliente contacta a su asesora: va impreso en
+  -- el segundo paso del vale. Nulo mientras la tienda no lo cargue, y
+  -- entonces el paso se imprime con su texto de siempre.
+  t.telefono            as tienda_telefono,
   t.logo_ruta           as tienda_logo_ruta,
   t.logo_actualizado_en as tienda_logo_actualizado_en,
   -- Cuándo cambió la tienda por última vez. El trigger de

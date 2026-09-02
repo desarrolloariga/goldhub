@@ -54,6 +54,7 @@ export async function GET(
     descuentoOro: Number(vale.descuento_oro_pct),
     vigencia: fecha(vale.fecha_vencimiento),
     tienda: vale.tienda,
+    telefono: vale.tienda_telefono,
     // Empotrado y no por URL: Satori tendría que ir a buscarlo en mitad del
     // render, y si esa petición falla el vale sale sin logotipo. Ver
     // `logoEmpotrado` en lib/logos.ts.

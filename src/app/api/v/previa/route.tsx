@@ -53,6 +53,8 @@ export async function GET(request: NextRequest) {
   const datos: DatosImagenVale = {
     codigo: "MZT-000045",
     tienda: params.get("tienda") ?? "Joyería Mazate",
+    // ?tel=  para ver el segundo paso con y sin teléfono cargado.
+    telefono: params.get("tel"),
     portador: "María Fernanda Solís",
     tipoEtiqueta: "Cliente existente",
     estado,

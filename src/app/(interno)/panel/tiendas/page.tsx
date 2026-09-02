@@ -1,4 +1,3 @@
-import Image from "next/image";
 import type { Metadata } from "next";
 
 import { Tarjeta } from "@/components/ui/tarjeta";
@@ -13,6 +12,7 @@ import { fecha } from "@/lib/format";
 
 import { BotonClave } from "./boton-clave";
 import { FormularioTienda } from "./formulario";
+import { LogoTienda } from "./logo-tienda";
 import { QrTienda } from "./qr-tienda";
 
 export const metadata: Metadata = { title: "Tiendas" };
@@ -61,27 +61,17 @@ export default async function PaginaTiendas() {
                   key={t.id}
                   className="border-ink/6 flex flex-wrap items-center gap-4 border-t px-5 py-4 first:border-t-0"
                 >
-                  {/* El logotipo, que es lo que sale impreso en sus vales.
-                      Su ausencia se ve de un vistazo, que es el punto. */}
-                  <span
-                    className={`border-ink/10 flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full border ${
-                      t.activo ? "" : "opacity-40"
-                    }`}
-                  >
-                    {logo ? (
-                      <Image
-                        src={logo}
-                        alt=""
-                        width={44}
-                        height={44}
-                        className="size-full object-contain"
-                      />
-                    ) : (
-                      <span className="text-ink/30 font-display text-[15px] leading-none">
-                        {t.prefijo.slice(0, 2)}
-                      </span>
-                    )}
-                  </span>
+                  {/* El logotipo es lo que sale impreso en sus vales, y se
+                      sube desde aquí: una tienda recién dada de alta no
+                      puede presentarse sola, y esperar a que entre a
+                      ponérselo deja vales firmados solo con el nombre. */}
+                  <LogoTienda
+                    tiendaId={t.id}
+                    nombre={t.nombre}
+                    prefijo={t.prefijo}
+                    logo={logo}
+                    activa={t.activo}
+                  />
 
                   <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
                     <span className="flex items-center gap-2">
@@ -154,10 +144,13 @@ export default async function PaginaTiendas() {
         </Tarjeta>
 
         <p className="text-ink/45 m-0 px-1 text-[11.5px] leading-relaxed">
+          Pulsa el logotipo de una tienda para cambiarlo. Cada tienda puede
+          hacerlo también desde su cuenta, en Mi tienda.
+          <br />
+          <br />
           Las tiendas no se borran: desactivarlas cierra su sesión y las quita
           de los formularios, sin romper los vales y las compras que ya las
-          referencian. Cada tienda sube su propio logotipo desde su cuenta, en
-          Mi tienda.
+          referencian.
         </p>
       </aside>
     </div>

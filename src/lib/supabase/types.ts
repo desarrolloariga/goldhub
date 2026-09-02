@@ -572,6 +572,20 @@ export type Database = {
         Returns: Database["smartvalehubgold"]["Views"]["vw_metricas_generales"]["Row"][];
       };
 
+      /**
+       * Sobre qué tienda opera una cuenta. Revienta si no puede operar sobre
+       * la que pide, o si la tienda está desactivada. Lo llama la capa de
+       * servidor para lo que no pasa por SQL, como subir un logotipo.
+       */
+      fn_tienda_en_alcance: {
+        Args: { p_usuario_id: number; p_tienda_id?: number | null };
+        Returns: number;
+      };
+      fn_tienda_de_cuenta: {
+        Args: { p_usuario_id: number };
+        Returns: number | null;
+      };
+
       fn_es_admin: { Args: { p_usuario_id: number }; Returns: boolean };
       fn_descuento_oro: { Args: Record<string, never>; Returns: number };
       fn_normalizar_telefono: { Args: { p_telefono: string }; Returns: string | null };

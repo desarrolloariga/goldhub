@@ -120,7 +120,9 @@ export function Logotipo({
               disabled={quitando}
               onClick={async () => {
                 setQuitando(true);
-                await quitarLogo();
+                // Sin `tiendaId`: la acción usa la de la sesión, que aquí es
+                // la única que esta cuenta puede tocar.
+                await quitarLogo(null, new FormData());
                 setPrevia(null);
                 if (entrada.current) entrada.current.value = "";
                 setQuitando(false);

@@ -222,12 +222,53 @@ export async function restablecerClave(
   return { credencial: { tienda: data.nombre, acceso: data.correo, clave } };
 }
 
-/* ── Datos y logotipo de la propia tienda ────────────────────────────────
+/* ── Datos y logotipo de una tienda ──────────────────────────────────────
  *
- * Estas dos las usa la tienda sobre sí misma, así que no piden `admin`
- * sino sesión, y el id sale de ella y NUNCA del formulario: aceptarlo del
- * cliente dejaría que una tienda cambiara el logotipo de otra.
+ * Las usan dos manos distintas: la tienda sobre sí misma, y el administrador
+ * sobre cualquiera —una tienda recién dada de alta no puede presentarse sola,
+ * y esperar a que entre a subir su logotipo deja vales firmados solo con el
+ * nombre—. Por eso piden sesión y no `admin`.
  */
+
+/**
+ * Sobre qué tienda opera esta sesión.
+ *
+ * Se lo pregunta a la base en vez de repetir la regla aquí. `fn_tienda_en_alcance`
+ * ya la aplica en toda escritura SQL —una cuenta de tienda solo la suya, el
+ * administrador la que diga— y tenerla escrita dos veces es tenerla escrita
+ * mal en cuanto una de las dos cambie.
+ *
+ * Hace falta la llamada explícita porque subir un logotipo NO pasa por
+ * Postgres: va a Storage con la clave de servicio, que salta cualquier regla.
+ * Sin esto, esa escritura se quedaría fuera de la única puerta que decide el
+ * alcance. De paso comprueba que la tienda existe y está activa.
+ */
+async function tiendaEnAlcance(
+  usuarioId: number,
+  pedida: number | null,
+): Promise<{ tiendaId: number } | { error: string }> {
+  const { data, error } = await db().rpc("fn_tienda_en_alcance", {
+    p_usuario_id: usuarioId,
+    p_tienda_id: pedida,
+  });
+
+  if (error) {
+    // SV001/005/012 traen mensajes escritos para quien está delante.
+    return {
+      error: ["SV001", "SV005", "SV012"].includes(error.code ?? "")
+        ? error.message
+        : `No se pudo resolver la tienda: ${error.message}`,
+    };
+  }
+  return { tiendaId: data as number };
+}
+
+/** El id que llega del formulario. Vacío = la propia, para una tienda. */
+function tiendaPedida(formData: FormData): number | null {
+  const crudo = formData.get("tiendaId");
+  const n = Number(crudo);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
 
 const EsquemaDatos = z.object({
   direccion: z
@@ -250,6 +291,8 @@ export async function guardarMiTienda(
   formData: FormData,
 ): Promise<EstadoMiTienda> {
   const sesion = await requerirSesion();
+  // Esta sí es solo de la propia tienda: el administrador no tiene una, y
+  // los datos que toca de las demás (nombre, prefijo) van por otro camino.
   if (!sesion.tiendaId) return { error: "Esta cuenta no tiene tienda." };
 
   const r = EsquemaDatos.safeParse({
@@ -296,7 +339,9 @@ export async function subirLogo(
   formData: FormData,
 ): Promise<EstadoLogo> {
   const sesion = await requerirSesion();
-  if (!sesion.tiendaId) return { error: "Esta cuenta no tiene tienda." };
+  const alcance = await tiendaEnAlcance(sesion.usuarioId, tiendaPedida(formData));
+  if ("error" in alcance) return { error: alcance.error };
+  const { tiendaId } = alcance;
 
   const archivo = formData.get("logo");
   if (!(archivo instanceof File) || archivo.size === 0) {
@@ -329,14 +374,10 @@ export async function subirLogo(
   }
 
   const anterior = (
-    await db()
-      .from("tiendas")
-      .select("logo_ruta")
-      .eq("id", sesion.tiendaId)
-      .maybeSingle()
+    await db().from("tiendas").select("logo_ruta").eq("id", tiendaId).maybeSingle()
   ).data?.logo_ruta;
 
-  const ruta = `${sesion.tiendaId}/${randomBytes(8).toString("hex")}.png`;
+  const ruta = `${tiendaId}/${randomBytes(8).toString("hex")}.png`;
 
   const { error: errorSubida } = await db()
     .storage.from(BUCKET_LOGOS)
@@ -349,7 +390,7 @@ export async function subirLogo(
   const { error } = await db()
     .from("tiendas")
     .update({ logo_ruta: ruta, logo_actualizado_en: new Date().toISOString() })
-    .eq("id", sesion.tiendaId);
+    .eq("id", tiendaId);
 
   if (error) {
     // La fila manda: un archivo al que no apunta nadie es basura.
@@ -366,20 +407,25 @@ export async function subirLogo(
   return { ok: "Logotipo actualizado. Ya sale en los vales nuevos." };
 }
 
-export async function quitarLogo(): Promise<EstadoLogo> {
+export async function quitarLogo(
+  _previo: EstadoLogo,
+  formData: FormData,
+): Promise<EstadoLogo> {
   const sesion = await requerirSesion();
-  if (!sesion.tiendaId) return { error: "Esta cuenta no tiene tienda." };
+  const alcance = await tiendaEnAlcance(sesion.usuarioId, tiendaPedida(formData));
+  if ("error" in alcance) return { error: alcance.error };
+  const { tiendaId } = alcance;
 
   const { data } = await db()
     .from("tiendas")
     .select("logo_ruta")
-    .eq("id", sesion.tiendaId)
+    .eq("id", tiendaId)
     .maybeSingle();
 
   const { error } = await db()
     .from("tiendas")
     .update({ logo_ruta: null, logo_actualizado_en: new Date().toISOString() })
-    .eq("id", sesion.tiendaId);
+    .eq("id", tiendaId);
 
   if (error) return { error: `No se pudo quitar el logotipo: ${error.message}` };
   if (data?.logo_ruta) {

@@ -109,7 +109,7 @@ export function NombreTienda({
   }
 
   return (
-    <span className="group flex min-w-0 items-center gap-2">
+    <span className="flex min-w-0 items-center gap-2">
       <span
         className={`truncate text-[13.5px] font-medium ${activa ? "" : "text-ink/40"}`}
       >
@@ -118,6 +118,15 @@ export function NombreTienda({
       <span className="text-taupe-dark shrink-0 font-mono text-[11px] font-semibold">
         {prefijo}
       </span>
+      {/*
+        Siempre visible, y no solo al pasar por encima.
+        Un control que aparece con el ratón se descubre por accidente, y en
+        una tableta —que es desde donde se administra media red— no se
+        descubre nunca: no hay «encima» que valga en una pantalla táctil.
+        Lo mismo vale para el área de pulsado, que a 12 px de icono se queda
+        por debajo de lo que un dedo acierta; el botón mide 26 aunque el
+        lápiz siga siendo pequeño.
+      */}
       <button
         type="button"
         onClick={() => {
@@ -126,7 +135,8 @@ export function NombreTienda({
           setEditando(true);
         }}
         title={`Cambiar el nombre de ${nombre}`}
-        className="text-ink/25 hover:text-taupe-dark shrink-0 cursor-pointer opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+        aria-label={`Cambiar el nombre de ${nombre}`}
+        className="border-ink/12 text-ink/40 hover:border-taupe hover:text-taupe-dark flex size-[26px] shrink-0 cursor-pointer items-center justify-center rounded-full border transition-colors"
       >
         <Pencil size={12} />
       </button>

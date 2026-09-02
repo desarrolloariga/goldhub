@@ -17,16 +17,21 @@ import type { EstadoVale } from "@/lib/supabase/types";
 
 export const PALETA = {
   /**
-   * Crema cálido. El vale es claro y no negro, y esa es la decisión que
-   * manda sobre el resto: cada tienda imprime aquí SU logotipo, y un
-   * logotipo se diseña casi siempre para fondo claro. Sobre negro, el que no
-   * traiga versión en blanco aparece con un recuadro alrededor —o hay que
-   * pedirle a cada tienda una segunda versión, que es una gestión que nadie
-   * va a sostener—. Sobre crema entra cualquiera tal como llegue.
+   * Blanco. El vale es claro y no negro, y esa es la decisión que manda
+   * sobre el resto: cada tienda imprime aquí SU logotipo, y un logotipo se
+   * diseña casi siempre para fondo blanco. Sobre negro, el que no traiga
+   * versión en claro aparece con un recuadro alrededor —o hay que pedirle a
+   * cada tienda una segunda versión, que es una gestión que nadie va a
+   * sostener—. Sobre blanco entra cualquiera tal como llegue, y además es
+   * lo que menos tinta gasta al imprimirlo.
    */
-  fondo: "#F5F2EC",
-  /** Líneas de la trama diagonal y fondo de la caja de pasos. */
-  trama: "#E4DFD5",
+  fondo: "#FFFFFF",
+  /**
+   * Líneas de la trama diagonal y fondo de la caja de pasos. Muy cerca del
+   * blanco: sobre fondo claro, una trama que se note compite con el
+   * logotipo de la tienda, que es lo único que debe destacar arriba.
+   */
+  trama: "#F1EEE8",
   /**
    * Taupe: reglas, esquinas, iconos, código y títulos de sección.
    *
@@ -41,11 +46,12 @@ export const PALETA = {
   /** Texto secundario. */
   gris: "#6E6862",
   /** Líneas divisorias. */
-  divisor: "#CBC4B7",
+  divisor: "#E4DED2",
   /**
-   * Fondo de la tarjeta del QR. Blanco puro y no el crema del vale: un
-   * lector necesita el contraste completo, y sobre fondo tintado algunos
-   * teléfonos fallan a la primera.
+   * Fondo de la tarjeta del QR. Es el mismo blanco del vale, así que no se
+   * ve como caja; lo que hace es tapar la trama por debajo. Un lector
+   * necesita el contraste completo, y sobre fondo tramado algunos teléfonos
+   * fallan a la primera.
    */
   blanco: "#FFFFFF",
 } as const;

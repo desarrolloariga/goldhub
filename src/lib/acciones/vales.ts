@@ -51,6 +51,23 @@ const Comun = {
       (v) => v === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
       "El correo no tiene un formato válido.",
     ),
+  /**
+   * La tienda que emite. Vacío significa «la de esta cuenta», que es lo que
+   * manda una tienda; el administrador, que no tiene una propia, sí la elige.
+   *
+   * Va en `Comun` y no solo en A3 y A4 —donde estaba, heredado del modelo en
+   * el que solo esas dos puertas tenían punto de venta— porque ahora todo
+   * vale pertenece a una tienda: de ella salen su prefijo, su correlativo y
+   * su logotipo. Sin esto, el administrador no podía emitir A1 ni A2.
+   */
+  tiendaId: z
+    .string()
+    .trim()
+    .transform((v) => (v === "" ? null : Number(v)))
+    .refine(
+      (v) => v === null || (Number.isInteger(v) && v > 0),
+      "Elige la tienda que emite el vale.",
+    ),
 };
 
 const EsquemaA1 = z.object({
@@ -75,21 +92,11 @@ const EsquemaA2 = z.object({
     .max(160, "El origen es demasiado largo."),
 });
 
-const EsquemaA3 = z.object({
-  ...Comun,
-  tiendaId: z.coerce
-    .number()
-    .int()
-    .positive("Elige el punto de venta."),
-});
+const EsquemaA3 = z.object({ ...Comun });
 
 /** El referido: lo que lo define es de qué vale viene. */
 const EsquemaA4 = z.object({
   ...Comun,
-  tiendaId: z.coerce
-    .number()
-    .int()
-    .positive("Elige el punto de venta."),
   valeOrigen: CodigoVale.refine(
     (v) => v !== "",
     "Escribe el código del vale que le enseñaron.",
@@ -141,6 +148,7 @@ export async function emitirVale(
     const r = EsquemaA1.safeParse(bruto);
     if (!r.success) return primerError(r.error);
     datos = r.data;
+    tiendaId = r.data.tiendaId;
     // `fn_emitir_vale` sigue exigiendo segmento en A1; lo pone el servidor.
     segmento = SEGMENTO_A1_FIJO;
     valeOrigen = r.data.valeOrigen;
@@ -148,6 +156,7 @@ export async function emitirVale(
     const r = EsquemaA2.safeParse(bruto);
     if (!r.success) return primerError(r.error);
     datos = r.data;
+    tiendaId = r.data.tiendaId;
     origen = r.data.origen;
   } else if (tipo === "A3") {
     const r = EsquemaA3.safeParse(bruto);
@@ -160,6 +169,16 @@ export async function emitirVale(
     datos = r.data;
     tiendaId = r.data.tiendaId;
     valeOrigen = r.data.valeOrigen;
+  }
+
+  // El administrador no tiene tienda propia, así que sin elegir una no hay
+  // dónde emitir. La base lo rechazaría igual con SV001, pero aquí el error
+  // se puede colgar del campo en vez de soltarlo sobre el formulario entero.
+  if (tiendaId === null && sesion.rol === "admin") {
+    return {
+      error: "Elige la tienda que emite el vale.",
+      campos: { tiendaId: "Elige la tienda" },
+    };
   }
 
   const { data, error } = await db().rpc("fn_emitir_vale", {

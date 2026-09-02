@@ -169,6 +169,23 @@ const v1 = await emitir(u1.id, "A1", "Ana Pérez", "50255512345", null, "A1-VIP"
 afirmar("el primer vale de la tienda es MZT-000001", v1.codigo === "MZT-000001", v1.codigo);
 afirmar("el descuento se congela al 15% en oro", Number(v1.descuento_oro_pct) === 15);
 
+// Un mes de calendario, no treinta días: al cliente se le dice «hasta el 2 de
+// octubre», el mismo día del mes siguiente. Se compara contra lo que calcula
+// el propio Postgres para no reimplementar aquí los meses cortos.
+{
+  const esperado = (
+    await uno("select (now() + interval '1 month') as v")
+  ).v;
+  const diferencia = Math.abs(
+    new Date(v1.fecha_vencimiento).getTime() - new Date(esperado).getTime(),
+  );
+  afirmar(
+    "y vence a un mes de calendario de hoy",
+    diferencia < 60_000,
+    `${v1.fecha_vencimiento} vs ${esperado}`,
+  );
+}
+
 const v2 = await emitir(u1.id, "A2", "Beto Ruiz", "50255512346", null, null, "Centro comercial", null, null);
 afirmar("las cuatro puertas comparten contador", v2.codigo === "MZT-000002", v2.codigo);
 

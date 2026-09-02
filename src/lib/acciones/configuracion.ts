@@ -37,8 +37,7 @@ const LIMITES: Record<string, { min: number; max: number; etiqueta: string }> = 
   // vino recomendado, así que se le ofrece menos.
   descuento_oro_a3: { min: 0, max: 100, etiqueta: "Descuento A3 en oro" },
   descuento_plata_a3: { min: 0, max: 100, etiqueta: "Descuento A3 en plata" },
-  dias_vigencia_vale: { min: 1, max: 3650, etiqueta: "Días de vigencia" },
-  vales_por_rango: { min: 1, max: 10000, etiqueta: "Vales por bloque" },
+  meses_vigencia_vale: { min: 1, max: 60, etiqueta: "Meses de vigencia" },
 };
 
 export async function guardarConfiguracion(

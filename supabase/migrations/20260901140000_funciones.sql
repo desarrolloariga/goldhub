@@ -163,10 +163,15 @@ declare
   v_dia   date;
   v_fin   timestamptz;
 begin
-  -- Sin fecha de corte configurada, la ventana de días desde hoy.
+  -- Sin fecha de corte configurada, la ventana de meses desde hoy.
+  --
+  -- En meses y no en días a propósito: al cliente se le dice «hasta el 2 de
+  -- octubre», que es el mismo día del mes siguiente y se recuerda solo.
+  -- Postgres ya resuelve los meses cortos —el 31 de enero más un mes cae el
+  -- 28 de febrero— sin que haya que pensarlo aquí.
   if v_texto is null then
     return now() + make_interval(
-      days => smartvalehubgold.fn_config('dias_vigencia_vale', 30)::integer
+      months => smartvalehubgold.fn_config('meses_vigencia_vale', 1)::integer
     );
   end if;
 

@@ -191,7 +191,7 @@ export function TarjetaVale({
               size={140}
               level="H"
               bgColor={PALETA.blanco}
-              fgColor="#0B0B0C"
+              fgColor={PALETA.tinta}
             />
           </div>
 

@@ -97,7 +97,7 @@ export function EnlacePublico({
               size={188}
               level="H"
               bgColor={PALETA.blanco}
-              fgColor="#0B0B0C"
+              fgColor={PALETA.tinta}
             />
           </div>
 

@@ -109,7 +109,9 @@ export default async function PaginaEmitir() {
                       vale muere ese día, se emita cuando se emita. */}
                   {tarifa.vigenciaHastaTexto
                     ? `hasta ${tarifa.vigenciaHastaTexto}`
-                    : `${tarifa.diasVigencia} días`}
+                    : tarifa.mesesVigencia === 1
+                      ? "1 mes"
+                      : `${tarifa.mesesVigencia} meses`}
                 </span>
               </div>
             </>

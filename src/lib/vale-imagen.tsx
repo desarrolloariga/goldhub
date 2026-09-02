@@ -277,6 +277,16 @@ function Descuento({
 }
 
 /**
+ * Medidas del sello en la tarjeta vertical.
+ *
+ * Van aquí arriba porque el hueco que baja la firma se calcula desde ellas:
+ * con las cifras escritas en dos sitios, el primer ajuste del sello vuelve a
+ * dejar el nombre debajo.
+ */
+const SELLO_LADO = 150;
+const SELLO_MARGEN = 34;
+
+/**
  * Sello «compártelo», arriba a la derecha.
  *
  * Un anillo doble con el rótulo dentro, todo en el acento del vale. La
@@ -393,9 +403,21 @@ export function tarjetaVertical(vale: DatosImagenVale): ReactElement {
       <Textura opacidad={0.85} />
       <Esquinas margen={22} lado={54} />
       {/* Un vale muerto no invita a compartirse. */}
-      {vigente ? <Sello lado={150} margen={34} /> : null}
+      {vigente ? <Sello lado={SELLO_LADO} margen={SELLO_MARGEN} /> : null}
 
-      <Marca cuerpo={62} ancho={500} nombre={vale.tienda} logo={vale.logo} />
+      {/*
+        Hueco para que la firma pase por debajo del sello.
+        El sello ocupa la esquina de arriba a la derecha y el nombre de la
+        tienda va centrado: con nombres largos, los dos se cruzaban. Bajar la
+        firma es lo que menos cuesta —el sello tiene que estar arriba, porque
+        las otras tres esquinas ya tienen dueño— y deja al nombre todo el
+        ancho de la tarjeta en vez de los 500 px que le quedaban al lado.
+      */}
+      <div
+        style={{ display: "flex", height: SELLO_MARGEN + SELLO_LADO - 44 + 18 }}
+      />
+
+      <Marca cuerpo={62} ancho={620} nombre={vale.tienda} logo={vale.logo} />
 
       <div
         style={{

@@ -4,6 +4,8 @@ import { useState } from "react";
 import QRCode from "react-qr-code";
 import { Check, Copy, Printer, QrCode, X } from "lucide-react";
 
+import { PALETA } from "@/lib/vale-plantilla";
+
 /**
  * QR fijo de la tienda para el mostrador.
  *
@@ -67,7 +69,7 @@ export function QrTienda({
             </div>
 
             <div className="rounded-card border-ink/8 border bg-white p-4">
-              <QRCode value={url} size={232} level="H" fgColor="#0B0B0C" />
+              <QRCode value={url} size={232} level="H" fgColor={PALETA.tinta} />
             </div>
 
             <p className="text-ink/45 m-0 text-center text-[12px] leading-relaxed">

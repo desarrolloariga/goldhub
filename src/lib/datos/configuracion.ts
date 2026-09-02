@@ -26,7 +26,8 @@ export async function mapaConfiguracion(): Promise<Record<string, string>> {
 export type Tarifa = {
   /** % sobre las piezas de oro. Es el único material que se vende. */
   oro: number;
-  diasVigencia: number;
+  /** Meses que dura un vale desde que se emite. */
+  mesesVigencia: number;
   /**
    * Día de cierre de la campaña, si lo hay. Con fecha de corte la ventana de
    * días no se usa: el vale muere ese día lo emita quien lo emita. Nulo =
@@ -67,7 +68,7 @@ export async function tarifaVigente(): Promise<Tarifa> {
 
   return {
     oro: leer("descuento_oro", 15),
-    diasVigencia: leer("dias_vigencia_vale", 30),
+    mesesVigencia: leer("meses_vigencia_vale", 1),
     vigenciaHasta: dia,
     // Se lee como mediodía para que el formateo a hora de Guatemala no pueda
     // cruzar a la víspera: "2026-10-31" a secas es medianoche UTC.

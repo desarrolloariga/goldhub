@@ -9,10 +9,20 @@ import QRCode from "qrcode";
  *   `react-qr-code`, que dibuja SVG nítido a cualquier tamaño.
  */
 
-/** Paleta de la marca aplicada al QR. */
+/**
+ * Paleta del QR.
+ *
+ * El claro es blanco puro y no el crema del panel: el QR va sobre el vale,
+ * que es blanco, y un fondo tintado se recortaba como un cuadro gris a su
+ * alrededor. Además es lo que más margen de lectura deja —algunos lectores
+ * baratos fallan a la primera sobre fondos tintados—.
+ *
+ * El oscuro es la tinta del sistema y no negro puro: a este contraste no
+ * cambia nada para el lector y encaja con el resto de la tarjeta.
+ */
 const COLORES = {
-  dark: "#0B0B0CFF",
-  light: "#F6F3EDFF",
+  dark: "#1A1714FF",
+  light: "#FFFFFFFF",
 } as const;
 
 export type OpcionesQR = {

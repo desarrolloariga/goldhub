@@ -199,31 +199,20 @@ export function FormularioConfiguracion({
           <CampoFecha
             clave="vigencia_hasta"
             etiqueta="ÚLTIMO DÍA DE LA CAMPAÑA"
-            ayuda="Vale para las cuatro puertas. Vacío = usar la ventana de días."
+            ayuda="Vale para las cuatro puertas. Vacío = usar la ventana de meses."
             valor={v("vigencia_hasta", "")}
             error={err("vigencia_hasta")}
           />
           <CampoNumero
-            clave="dias_vigencia_vale"
+            clave="meses_vigencia_vale"
             etiqueta="VENTANA SIN FECHA DE CIERRE"
             ayuda="Contados desde la emisión. Se ignora mientras haya día de cierre."
-            valor={v("dias_vigencia_vale", "30")}
-            sufijo="días"
+            valor={v("meses_vigencia_vale", "1")}
+            sufijo="meses"
             min={1}
-            max={3650}
+            max={60}
             paso="1"
-            error={err("dias_vigencia_vale")}
-          />
-          <CampoNumero
-            clave="vales_por_rango"
-            etiqueta="TAMAÑO DEL BLOQUE"
-            ayuda="Valor propuesto al asignar un rango nuevo."
-            valor={v("vales_por_rango", "100")}
-            sufijo="vales"
-            min={1}
-            max={10000}
-            paso="1"
-            error={err("vales_por_rango")}
+            error={err("meses_vigencia_vale")}
           />
         </div>
       </section>

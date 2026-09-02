@@ -82,7 +82,9 @@ export default async function PaginaAutorregistro({
             <p className="text-bone/30 m-0 text-center text-[11px] leading-relaxed">
               {tarifa.vigenciaHastaTexto
                 ? `Válido hasta el ${tarifa.vigenciaHastaTexto}`
-                : `Vigencia de ${tarifa.diasVigencia} días desde hoy`}{" "}
+                : tarifa.mesesVigencia === 1
+                  ? "Válido durante un mes desde hoy"
+                  : `Válido durante ${tarifa.mesesVigencia} meses desde hoy`}{" "}
               · No es canjeable por efectivo
             </p>
           </>

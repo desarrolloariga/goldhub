@@ -360,15 +360,21 @@ insert into smartvalehubgold.configuracion (clave, valor, tipo_dato, grupo, desc
 values
   ('descuento_oro', '15', 'numero', 'vales',
    'Porcentaje en oro de todos los vales. Se congela dentro de cada vale al emitirlo.'),
-  ('dias_vigencia_vale', '30', 'numero', 'vales',
-   'Días que dura un vale desde que se emite. Se ignora si hay vigencia_hasta.'),
+  ('meses_vigencia_vale', '1', 'numero', 'vales',
+   'Meses que dura un vale desde que se emite. Se ignora si hay vigencia_hasta.'),
   ('vigencia_hasta', '', 'texto', 'vales',
-   'Fecha de corte de la campaña (AAAA-MM-DD), en hora de Guatemala. Vacío = usar dias_vigencia_vale.'),
+   'Fecha de corte de la campaña (AAAA-MM-DD), en hora de Guatemala. Vacío = usar meses_vigencia_vale.'),
   ('dias_aviso_vencimiento', '7', 'numero', 'vales',
    'Con cuántos días de antelación se avisa de un vale por vencer.'),
   ('horas_sesion', '12', 'numero', 'seguridad',
    'Duración de una sesión sin actividad.')
 on conflict (clave) do nothing;
+
+-- La vigencia pasó de contarse en días a contarse en meses: «vence el 2 de
+-- octubre» se entiende de un vistazo, y treinta días desde el 31 de enero no
+-- cae donde nadie espera. La clave vieja se retira para que no se quede en
+-- la pantalla de configuración sin hacer nada.
+delete from smartvalehubgold.configuracion where clave = 'dias_vigencia_vale';
 
 
 -- ═══ Marca de actualización ══════════════════════════════════════════════

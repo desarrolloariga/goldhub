@@ -1,0 +1,346 @@
+/**
+ * Ensayo completo del esquema, sin base de datos.
+ *
+ *   npm run test:esquema
+ *
+ * Levanta un Postgres 17 en WASM (PGlite), le aplica `supabase/migrations/`
+ * en orden y ejerce las reglas de negocio contra él. No toca la red ni
+ * necesita credenciales: se puede correr en cualquier máquina y en CI.
+ *
+ * Por qué existe, teniendo ya `test:negocio`: el proyecto de Supabase está
+ * compartido con la aplicación de ARIGA, que corre en producción en el
+ * esquema vecino. Una migración con un error de sintaxis a mitad se aplica a
+ * medias y hay que deshacerla a mano sobre esa base. Aquí se ensaya antes,
+ * cuantas veces haga falta, sin consecuencias.
+ *
+ * Lo que NO cubre: la concurrencia real. PGlite tiene una sola conexión, así
+ * que no puede probar que dos cajas emitiendo a la vez se lleven correlativos
+ * distintos. Eso lo verifica `npm run test:negocio` contra la base real.
+ */
+
+import { PGlite } from "@electric-sql/pglite";
+import { readFileSync, readdirSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const migraciones = path.join(raiz, "supabase", "migrations");
+
+const db = await new PGlite();
+
+// Postgres a secas no trae ni los roles de Supabase ni el esquema `storage`.
+// Se levanta lo mínimo para que las migraciones se apliquen igual que allí.
+await db.exec(`
+  do $$ begin
+    if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon; end if;
+    if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated; end if;
+    if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role; end if;
+  end $$;
+  create schema if not exists storage;
+  create table if not exists storage.buckets (
+    id text primary key,
+    name text not null,
+    public boolean default false,
+    file_size_limit bigint,
+    allowed_mime_types text[]
+  );
+`);
+
+let ok = 0;
+let mal = 0;
+
+const afirmar = (nombre, condicion, detalle = "") => {
+  if (condicion) {
+    ok++;
+    console.log(`  [ok] ${nombre}`);
+  } else {
+    mal++;
+    console.log(`  [!!] ${nombre}${detalle ? ` — ${detalle}` : ""}`);
+  }
+};
+
+/** Espera que la llamada reviente con ese SQLSTATE, y no con otro. */
+async function rechaza(nombre, codigo, sql, params = []) {
+  try {
+    await db.query(sql, params);
+    mal++;
+    console.log(`  [!!] ${nombre} — no falló, y debía`);
+  } catch (e) {
+    const real = e.code ?? "(sin código)";
+    if (real === codigo) {
+      ok++;
+      console.log(`  [ok] ${nombre} (${codigo})`);
+    } else {
+      mal++;
+      console.log(`  [!!] ${nombre} — esperaba ${codigo}, dio ${real}: ${e.message}`);
+    }
+  }
+}
+
+const uno = async (sql, params = []) => (await db.query(sql, params)).rows[0];
+
+console.log("\nGOLD HUB SMART VALE · ensayo del esquema (Postgres 17 en WASM)\n");
+
+// ── Las migraciones se aplican ───────────────────────────────────────────
+console.log("Migraciones");
+for (const f of readdirSync(migraciones).filter((f) => f.endsWith(".sql")).sort()) {
+  const sql = readFileSync(path.join(migraciones, f), "utf8");
+  try {
+    await db.exec(sql);
+    ok++;
+    console.log(`  [ok] ${f}`);
+  } catch (e) {
+    mal++;
+    console.log(`  [!!] ${f}\n       ${e.message}`);
+    if (e.position) {
+      const linea = sql.slice(0, Number(e.position)).split("\n").length;
+      console.log(`       línea ~${linea}: ${sql.split("\n")[linea - 1]?.trim()}`);
+    }
+    // Sin esquema no hay nada más que probar.
+    process.exit(1);
+  }
+}
+
+// ── Alta ─────────────────────────────────────────────────────────────────
+console.log("\nAlta de tiendas y cuentas");
+
+const t1 = await uno(
+  `insert into smartvalehubgold.tiendas (nombre, prefijo)
+   values ('Gold Hub Mazate', 'MZT') returning *`);
+const t2 = await uno(
+  `insert into smartvalehubgold.tiendas (nombre, prefijo)
+   values ('Gold Hub Pradera', 'PRA') returning *`);
+afirmar("dos tiendas con prefijo propio", t1.prefijo === "MZT" && t2.prefijo === "PRA");
+afirmar("cada tienda nace con su QR fijo", t1.token !== t2.token && t1.token.length === 22);
+
+const admin = await uno(
+  `insert into smartvalehubgold.usuarios (nombre, correo, contrasena_hash, rol)
+   values ('Admin', 'admin', 'x', 'admin') returning *`);
+const u1 = await uno(
+  `insert into smartvalehubgold.usuarios (nombre, correo, contrasena_hash, rol, tienda_id)
+   values ('Mazate', 'mazate', 'x', 'tienda', $1) returning *`, [t1.id]);
+const u2 = await uno(
+  `insert into smartvalehubgold.usuarios (nombre, correo, contrasena_hash, rol, tienda_id)
+   values ('Pradera', 'pradera', 'x', 'tienda', $1) returning *`, [t2.id]);
+afirmar("una cuenta por tienda, más el administrador", !!admin && !!u1 && !!u2);
+
+await rechaza("un admin no puede llevar tienda", "23514",
+  `insert into smartvalehubgold.usuarios (nombre, correo, contrasena_hash, rol, tienda_id)
+   values ('Malo', 'malo', 'x', 'admin', $1)`, [t1.id]);
+await rechaza("una cuenta de tienda necesita tienda", "23514",
+  `insert into smartvalehubgold.usuarios (nombre, correo, contrasena_hash, rol)
+   values ('Malo2', 'malo2', 'x', 'tienda')`);
+await rechaza("no caben dos cuentas en la misma tienda", "23505",
+  `insert into smartvalehubgold.usuarios (nombre, correo, contrasena_hash, rol, tienda_id)
+   values ('Otra', 'otra', 'x', 'tienda', $1)`, [t1.id]);
+await rechaza("el prefijo no admite dígitos", "23514",
+  `insert into smartvalehubgold.tiendas (nombre, prefijo) values ('Mala', 'M1')`);
+await rechaza("el prefijo no se repite", "23505",
+  `insert into smartvalehubgold.tiendas (nombre, prefijo) values ('Otra', 'MZT')`);
+
+// ── Emisión ──────────────────────────────────────────────────────────────
+console.log("\nEmisión");
+
+const emitir = (...a) =>
+  uno(`select * from smartvalehubgold.fn_emitir_vale($1,$2,$3,$4,$5,$6,$7,$8,$9)`, a);
+
+const v1 = await emitir(u1.id, "A1", "Ana Pérez", "50255512345", null, "A1-VIP", null, null, null);
+afirmar("el primer vale de la tienda es MZT-000001", v1.codigo === "MZT-000001", v1.codigo);
+afirmar("el descuento se congela al 15% en oro", Number(v1.descuento_oro_pct) === 15);
+
+const v2 = await emitir(u1.id, "A2", "Beto Ruiz", "50255512346", null, null, "Centro comercial", null, null);
+afirmar("las cuatro puertas comparten contador", v2.codigo === "MZT-000002", v2.codigo);
+
+const v3 = await emitir(u2.id, "A1", "Carla Díaz", "50255512347", null, "A1-VIP", null, null, null);
+afirmar("otra tienda arranca su propia serie", v3.codigo === "PRA-000001", v3.codigo);
+
+const vAdmin = await emitir(admin.id, "A1", "Dora Gil", "50255512348", null, "A1-VIP", null, t1.id, null);
+afirmar("el admin emite eligiendo tienda", vAdmin.codigo === "MZT-000003", vAdmin.codigo);
+
+await rechaza("un A1 sin clasificación no pasa", "SV006",
+  `select smartvalehubgold.fn_emitir_vale($1,'A1','X','50255500001')`, [u1.id]);
+await rechaza("un A2 sin origen no pasa", "SV006",
+  `select smartvalehubgold.fn_emitir_vale($1,'A2','X','50255500002')`, [u1.id]);
+await rechaza("el admin tiene que decir en qué tienda", "SV001",
+  `select smartvalehubgold.fn_emitir_vale($1,'A1','X','50255500003',null,'A1-VIP')`, [admin.id]);
+await rechaza("una tienda no emite por otra", "SV012",
+  `select smartvalehubgold.fn_emitir_vale($1,'A1','X','50255500004',null,'A1-VIP',null,$2)`,
+  [u1.id, t2.id]);
+await rechaza("una cuenta desactivada no emite", "SV005",
+  `select smartvalehubgold.fn_emitir_vale(99999,'A1','X','50255500005',null,'A1-VIP')`);
+
+// Un correlativo gastado en un vale que no nace deja un hueco que luego nadie
+// sabe explicar. Todo lo que puede fallar se comprueba antes de moverlo.
+const antes = await uno(`select correlativo from smartvalehubgold.tiendas where id = $1`, [t1.id]);
+try {
+  await db.query(`select smartvalehubgold.fn_emitir_vale($1,'A1','X','50255500006')`, [u1.id]);
+} catch { /* se espera que falle */ }
+const despues = await uno(`select correlativo from smartvalehubgold.tiendas where id = $1`, [t1.id]);
+afirmar("una emisión rechazada no quema correlativo",
+  antes.correlativo === despues.correlativo, `${antes.correlativo} → ${despues.correlativo}`);
+
+// ── Autorregistro ────────────────────────────────────────────────────────
+console.log("\nAutorregistro por el QR de la tienda");
+
+const a3 = await uno(
+  `select * from smartvalehubgold.fn_autorregistro($1,'Elena Mora','50255512350')`, [t1.token]);
+afirmar("el visitante se lleva un A3", a3.tipo === "A3" && a3.autorregistro === true);
+afirmar("sale sin cuenta emisora", a3.usuario_id === null);
+afirmar("consume el correlativo de la tienda", a3.codigo === "MZT-000004", a3.codigo);
+
+const a3bis = await uno(
+  `select * from smartvalehubgold.fn_autorregistro($1,'Elena Mora','50255512350')`, [t1.token]);
+afirmar("volver a escanear devuelve el mismo vale", a3bis.id === a3.id);
+
+const a4 = await uno(
+  `select * from smartvalehubgold.fn_autorregistro($1,'Fito Sosa','50255512351',null,$2)`,
+  [t1.token, v2.codigo]);
+afirmar("con código de referidor sale un A4", a4.tipo === "A4" && a4.vale_origen_id === v2.id);
+
+await rechaza("un token de tienda inventado no sirve", "SV007",
+  `select smartvalehubgold.fn_autorregistro('noexiste','X','50255500007')`);
+await rechaza("un A4 no puede venir de otro A4", "SV009",
+  `select smartvalehubgold.fn_autorregistro($1,'Y','50255500008',null,$2)`, [t1.token, a4.codigo]);
+
+await db.query(`update smartvalehubgold.tiendas set autorregistro = false where id = $1`, [t2.id]);
+await rechaza("con el autorregistro apagado no se registra nadie", "SV008",
+  `select smartvalehubgold.fn_autorregistro($1,'Z','50255500009')`, [t2.token]);
+
+// ── Redención ────────────────────────────────────────────────────────────
+console.log("\nRedención");
+
+const r1 = await uno(
+  `select * from smartvalehubgold.fn_registrar_redencion($1,$2,'Ana Pérez','50255512345',null,1000)`,
+  [v1.codigo, u1.id]);
+afirmar("el descuento sale del % congelado", Number(r1.descuento_aplicado) === 150,
+  String(r1.descuento_aplicado));
+
+const r2 = await uno(
+  `select * from smartvalehubgold.fn_registrar_redencion($1,$2,'Ana Pérez','50255512345',null,500)`,
+  [v1.codigo, u1.id]);
+afirmar("el vale no se consume: admite otra compra", !!r2 && r2.id !== r1.id);
+
+const r3 = await uno(
+  `select * from smartvalehubgold.fn_registrar_redencion($1,$2,'Otro Comprador','50255599999',null,800,'Ana')`,
+  [v2.codigo, u1.id]);
+afirmar("una compra de alguien que no es el portador se registra igual", !!r3);
+
+const porAdmin = await uno(
+  `select * from smartvalehubgold.fn_registrar_redencion($1,$2,'Ana Pérez','50255512345',null,100)`,
+  [v1.codigo, admin.id]);
+afirmar("el admin redime sin elegir tienda: la pone el vale",
+  porAdmin.tienda_id === t1.id);
+
+await rechaza("un vale no se redime en otra tienda", "SV015",
+  `select smartvalehubgold.fn_registrar_redencion($1,$2,'Ana Pérez','50255512345',null,300)`,
+  [v1.codigo, u2.id]);
+
+await rechaza("un monto de cero no es una compra", "SV006",
+  `select smartvalehubgold.fn_registrar_redencion($1,$2,'Ana','50255512345',null,0)`,
+  [v1.codigo, u1.id]);
+await rechaza("un vale inexistente no se redime", "SV002",
+  `select smartvalehubgold.fn_registrar_redencion('NADA-000001',$1,'Ana','50255512345',null,100)`,
+  [u1.id]);
+
+await db.query(`select smartvalehubgold.fn_anular_vale($1,$2,'prueba')`, [v3.codigo, admin.id]);
+await rechaza("un vale anulado no se redime", "SV004",
+  `select smartvalehubgold.fn_registrar_redencion($1,$2,'C','50255512347',null,100)`,
+  [v3.codigo, u2.id]);
+
+// ── Administración ───────────────────────────────────────────────────────
+console.log("\nAcciones del administrador");
+
+await rechaza("una tienda no anula vales", "SV012",
+  `select smartvalehubgold.fn_anular_vale($1,$2,'porque sí')`, [v2.codigo, u1.id]);
+await rechaza("anular sin motivo no vale", "SV006",
+  `select smartvalehubgold.fn_anular_vale($1,$2,'  ')`, [v2.codigo, admin.id]);
+await rechaza("no se elimina un vale con compras", "SV013",
+  `select smartvalehubgold.fn_eliminar_vale($1,$2)`, [v1.codigo, admin.id]);
+await rechaza("no se elimina un vale que trajo referidos", "SV013",
+  `select smartvalehubgold.fn_eliminar_vale($1,$2)`, [v2.codigo, admin.id]);
+
+const react = await uno(`select * from smartvalehubgold.fn_reactivar_vale($1,$2)`, [v3.codigo, admin.id]);
+afirmar("el administrador reactiva un vale anulado", react.anulado === false);
+
+const editada = await uno(
+  `select * from smartvalehubgold.fn_editar_redencion($1,$2,2000)`, [r1.id, admin.id]);
+afirmar("corregir el monto recalcula el descuento",
+  Number(editada.descuento_aplicado) === 300, String(editada.descuento_aplicado));
+afirmar("y sin comprador nuevo conserva el que tenía",
+  editada.contacto_id === r1.contacto_id);
+
+const recomprador = await uno(
+  `select * from smartvalehubgold.fn_editar_redencion($1,$2,2000,'Ana Pérez Corregida','50255512345')`,
+  [r1.id, admin.id]);
+const contactoAna = await uno(
+  `select nombre from smartvalehubgold.contactos where id = $1`, [recomprador.contacto_id]);
+afirmar("corregir el comprador reescribe el contacto, no crea otro",
+  contactoAna.nombre === "Ana Pérez Corregida" &&
+    recomprador.contacto_id === r1.contacto_id);
+
+const limpio = await uno(`select * from smartvalehubgold.fn_eliminar_vale($1,$2)`,
+  [vAdmin.codigo, admin.id]);
+afirmar("un vale sin rastro sí se elimina", limpio.fn_eliminar_vale === true);
+
+// ── Validación y métricas ────────────────────────────────────────────────
+console.log("\nValidación y métricas");
+
+const val = await uno(`select * from smartvalehubgold.fn_validar_vale($1)`, [v1.codigo]);
+afirmar("la caja ve el vale con su tienda", val.tienda === "Gold Hub Mazate");
+afirmar("y cuántas compras lleva", val.total_redenciones === 3, String(val.total_redenciones));
+
+const valA3 = await uno(`select * from smartvalehubgold.fn_validar_vale($1)`, [a3.codigo]);
+afirmar("un vale de autorregistro no desaparece de la caja", valA3?.codigo === a3.codigo);
+afirmar("y su emisor es la propia tienda", valA3?.emisora === "Gold Hub Mazate");
+
+const m = await uno(`select * from smartvalehubgold.fn_metricas()`);
+afirmar("las métricas generales cuadran", m.vales_emitidos > 0 && Number(m.ingreso_total) > 0);
+
+const mMzt = await uno(`select * from smartvalehubgold.fn_metricas($1)`, [t1.id]);
+const mPra = await uno(`select * from smartvalehubgold.fn_metricas($1)`, [t2.id]);
+afirmar("y se pueden acotar a una tienda",
+  mMzt.vales_emitidos + mPra.vales_emitidos === m.vales_emitidos,
+  `${mMzt.vales_emitidos} + ${mPra.vales_emitidos} vs ${m.vales_emitidos}`);
+
+for (const v of [
+  "vw_vales_detalle", "vw_metricas_generales", "vw_vales_por_tipo",
+  "vw_desempeno_tiendas", "vw_ranking_tiendas", "vw_contactos_detalle",
+  "vw_viralidad_a2", "vw_actividad_diaria", "vw_ventas",
+]) {
+  try {
+    await db.query(`select * from smartvalehubgold.${v} limit 5`);
+    ok++;
+    console.log(`  [ok] ${v} responde`);
+  } catch (e) {
+    mal++;
+    console.log(`  [!!] ${v} — ${e.message}`);
+  }
+}
+
+const dif = await uno(`select * from smartvalehubgold.vw_viralidad_a2`);
+afirmar("la difusión detecta la compra de un tercero",
+  dif.redenciones_difundidas === 1, String(dif.redenciones_difundidas));
+
+const desemp = await uno(
+  `select * from smartvalehubgold.vw_desempeno_tiendas where tienda_id = $1`, [t1.id]);
+afirmar("el desempeño enlaza tienda y cuenta", desemp.cuenta === "Mazate");
+afirmar("y sabe si tiene logotipo", desemp.tiene_logo === false);
+
+const ventas = await uno(`select * from smartvalehubgold.fn_ventas_resumen()`);
+afirmar("el tablero de ventas suma solo oro",
+  Number(ventas.venta) > 0 && ventas.tickets === 4, `tickets ${ventas.tickets}`);
+
+const porTienda = (await db.query(`select * from smartvalehubgold.fn_ventas_por_tienda()`)).rows;
+afirmar("y reparte por tienda de la compra", porTienda.length === 1, `${porTienda.length} filas`);
+
+// ── Almacén de logotipos ─────────────────────────────────────────────────
+console.log("\nAlmacén de logotipos");
+
+const bucket = await uno(`select * from storage.buckets where id = 'logos-tiendas'`);
+afirmar("el bucket existe y es público de lectura", bucket?.public === true);
+afirmar("con tope de tamaño", Number(bucket?.file_size_limit) === 262144);
+
+// ── Cierre ───────────────────────────────────────────────────────────────
+console.log(`\n${ok} correctas, ${mal} fallo(s).\n`);
+await db.close();
+process.exit(mal ? 1 : 0);

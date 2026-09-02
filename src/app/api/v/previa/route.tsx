@@ -1,0 +1,62 @@
+import { ImageResponse } from "next/og";
+import { NextResponse, type NextRequest } from "next/server";
+
+import { qrDataUrl } from "@/lib/qr";
+import {
+  FUENTES,
+  tarjetaApaisada,
+  tarjetaVertical,
+  type DatosImagenVale,
+} from "@/lib/vale-imagen";
+
+export const runtime = "nodejs";
+
+/**
+ * El vale dibujado con datos falsos, para revisar el diseño.
+ *
+ *   /api/v/previa                        vertical 800×1200
+ *   /api/v/previa?formato=social         apaisada 1200×630
+ *   /api/v/previa?tienda=Nombre+Largo    probar cómo cae un nombre largo
+ *   /api/v/previa?estado=vencido         sin el sello de compartir
+ *
+ * **Solo en desarrollo.** En producción responde 404: es una ruta pública
+ * —cuelga de `/api/v/`, que el proxy deja pasar sin sesión— y no hay razón
+ * para que exista en el servidor real.
+ *
+ * Existe porque las composiciones de `lib/vale-imagen.tsx` son funciones
+ * puras de sus datos, así que se pueden dibujar sin tocar la base. Sin esto,
+ * revisar un cambio de paleta o un nombre de tienda que no cabe obliga a
+ * tener vales de verdad en la base y a ir a buscar uno.
+ */
+export async function GET(request: NextRequest) {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "No encontrado." }, { status: 404 });
+  }
+
+  const params = request.nextUrl.searchParams;
+  const social = params.get("formato") === "social";
+  const estado = params.get("estado") === "vencido" ? "vencido" : "activo";
+
+  const datos: DatosImagenVale = {
+    codigo: "MZT-000045",
+    tienda: params.get("tienda") ?? "Joyería Mazate",
+    portador: "María Fernanda Solís",
+    tipoEtiqueta: "Cliente existente",
+    estado,
+    descuentoOro: 15,
+    vigencia: "31 oct 2026",
+    qr: await qrDataUrl("https://ejemplo.gt/v/previa", {
+      tamano: social ? 500 : 480,
+      margen: 1,
+    }),
+  };
+
+  return new ImageResponse(
+    social ? tarjetaApaisada(datos) : tarjetaVertical(datos),
+    {
+      width: social ? 1200 : 800,
+      height: social ? 630 : 1200,
+      fonts: FUENTES.map((f) => ({ ...f })),
+    },
+  ) as unknown as NextResponse;
+}

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;background:#0B0B0C;font-family:Geist,system-ui,sans-serif}
+*{box-sizing:border-box}
+a{color:#C6A15B;text-decoration:none}
+a:hover{color:#E7CE92}
+input,button{font-family:inherit}
+input:focus{outline:none}
+::placeholder{color:rgba(11,11,12,.32)}
+@keyframes ar-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#0B0B0C;color:#F6F3ED">
+
+<sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+<div style="display:grid;grid-template-columns:1.05fr 1fr;min-height:100vh">
+
+  <div style="position:relative;background:radial-gradient(120% 90% at 20% 10%, #1a1712 0%, #0B0B0C 62%);display:flex;flex-direction:column;justify-content:space-between;padding:56px 60px;overflow:hidden">
+    <div style="position:absolute;inset:0;opacity:.12;background:repeating-linear-gradient(135deg,transparent 0 22px,#C6A15B 22px 23px)"></div>
+    <div style="position:absolute;width:520px;height:520px;right:-190px;bottom:-160px;border:1px solid rgba(198,161,91,.25);transform:rotate(45deg)"></div>
+    <div style="position:absolute;width:340px;height:340px;right:-90px;bottom:-70px;border:1px solid rgba(198,161,91,.16);transform:rotate(45deg)"></div>
+
+    <div style="position:relative;height:1px"></div>
+
+    <div style="position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:30px;margin:0 auto;max-width:520px">
+      <span style="font:400 68px/1 'Cormorant Garamond',Georgia,serif;letter-spacing:.18em"><span style="color:#E7CE92">GOLD</span><span style="display:inline-block;width:18px"></span><span style="color:rgba(246,243,237,.85)">HUB</span></span>
+      <div style="width:52px;height:1px;background:#C6A15B"></div>
+      <p style="margin:0;font:400 26px/1.45 'Cormorant Garamond',serif;color:#F6F3ED">Plataforma de generación y redención de vales</p>
+      <span style="font:500 10px/1 Geist,sans-serif;letter-spacing:.42em;color:rgba(231,206,146,.75)">SMART VALE</span>
+    </div>
+
+    <div style="position:relative;display:flex;gap:40px">
+      <div style="display:flex;flex-direction:column;gap:4px"><span style="font:500 20px/1 'Cormorant Garamond',serif;color:#E7CE92">1,284</span><span style="font:400 10px/1 Geist,sans-serif;letter-spacing:.18em;color:rgba(246,243,237,.35)">VALES EMITIDOS</span></div>
+      <div style="display:flex;flex-direction:column;gap:4px"><span style="font:500 20px/1 'Cormorant Garamond',serif;color:#E7CE92">6</span><span style="font:400 10px/1 Geist,sans-serif;letter-spacing:.18em;color:rgba(246,243,237,.35)">SUCURSALES</span></div>
+      <div style="display:flex;flex-direction:column;gap:4px"><span style="font:500 20px/1 'Cormorant Garamond',serif;color:#E7CE92">99.2%</span><span style="font:400 10px/1 Geist,sans-serif;letter-spacing:.18em;color:rgba(246,243,237,.35)">CANJE VÁLIDO</span></div>
+    </div>
+  </div>
+
+  <div style="background:#F6F3ED;color:#0B0B0C;display:flex;align-items:center;justify-content:center;padding:56px">
+    <div style="width:100%;max-width:378px;display:flex;flex-direction:column;gap:30px;animation:ar-in .5s ease both">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:500 10px/1 Geist,sans-serif;letter-spacing:.28em;color:#9C7B36">ACCESO INTERNO</span>
+        <h2 style="margin:0;font:400 34px/1.15 'Cormorant Garamond',serif">Iniciar sesión</h2>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <label style="display:flex;flex-direction:column;gap:7px">
+          <span style="font:500 10px/1 Geist,sans-serif;letter-spacing:.16em;color:rgba(11,11,12,.5)">CORREO O USUARIO</span>
+          <input type="text" value="mariana.lopez@goldhub.gt" style="width:100%;padding:13px 14px;border:1px solid rgba(11,11,12,.14);border-radius:2px;background:#fff;font:400 14px Geist,sans-serif;color:#0B0B0C" style-focus="border-color:#C6A15B;box-shadow:0 0 0 3px rgba(198,161,91,.16)">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:7px">
+          <span style="font:500 10px/1 Geist,sans-serif;letter-spacing:.16em;color:rgba(11,11,12,.5)">CONTRASEÑA</span>
+          <input type="password" value="joyeria2026" style="width:100%;padding:13px 14px;border:1px solid rgba(11,11,12,.14);border-radius:2px;background:#fff;font:400 14px Geist,sans-serif;color:#0B0B0C;letter-spacing:.14em" style-focus="border-color:#C6A15B;box-shadow:0 0 0 3px rgba(198,161,91,.16)">
+        </label>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="display:flex;align-items:center;gap:8px;font:400 12px Geist,sans-serif;color:rgba(11,11,12,.6)"><span style="width:13px;height:13px;border:1px solid #C6A15B;background:#C6A15B;position:relative;border-radius:1px"><span style="position:absolute;left:3px;top:6px;width:5px;height:1.5px;background:#fff;transform:rotate(45deg)"></span><span style="position:absolute;left:5px;top:5px;width:8px;height:1.5px;background:#fff;transform:rotate(-50deg)"></span></span>Mantener sesión</span>
+          <a href="#" style="font:400 12px Geist,sans-serif;color:#9C7B36;border-bottom:1px solid rgba(156,123,54,.3)">¿Olvidaste tu clave?</a>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <button onClick="{{ enter }}" style="width:100%;padding:15px;border:none;border-radius:2px;background:#0B0B0C;color:#E7CE92;font:600 12px Geist,sans-serif;letter-spacing:.22em;cursor:pointer;transition:background .2s" style-hover="background:#26221b">ENTRAR AL PANEL</button>
+        <button onClick="{{ enter }}" style="width:100%;padding:14px;border:1px solid rgba(11,11,12,.16);border-radius:2px;background:transparent;color:rgba(11,11,12,.7);font:500 12px Geist,sans-serif;letter-spacing:.14em;cursor:pointer" style-hover="border-color:#C6A15B;color:#0B0B0C">Acceder con código de sucursal</button>
+      </div>
+
+      <p style="margin:0;font:400 11px/1.6 Geist,sans-serif;color:rgba(11,11,12,.38)">Uso exclusivo del personal de GOLD HUB. Cada emisión de vale queda registrada con tu nombre y sucursal.</p>
+    </div>
+  </div>
+
+</div>
+</sc-if>
+
+<sc-if value="{{ isApp }}" hint-placeholder-val="{{ false }}">
+<div style="display:grid;grid-template-columns:262px 1fr;min-height:100vh">
+
+  <aside style="background:linear-gradient(180deg,#101013 0%,#0B0B0C 100%);border-right:1px solid rgba(198,161,91,.16);display:flex;flex-direction:column;padding:26px 18px;gap:26px;position:sticky;top:0;height:100vh">
+    <div style="display:flex;align-items:center;gap:12px;padding:0 8px">
+      <span style="font:400 17px/1 'Cormorant Garamond',Georgia,serif;letter-spacing:.18em"><span style="color:#E7CE92">GOLD</span><span style="display:inline-block;width:5px"></span><span style="color:rgba(246,243,237,.85)">HUB</span></span>
+      <div style="display:flex;flex-direction:column;gap:3px">
+        
+        <span style="font:400 8px/1 Geist,sans-serif;letter-spacing:.36em;color:rgba(246,243,237,.4)">JOYERÍA</span>
+      </div>
+    </div>
+
+    <button onClick="{{ openVale }}" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid rgba(198,161,91,.4);border-radius:3px;background:rgba(198,161,91,.1);color:#E7CE92;font:600 11px Geist,sans-serif;letter-spacing:.16em;cursor:pointer" style-hover="background:rgba(198,161,91,.2)">
+      <span style="width:9px;height:9px;background:#C6A15B;transform:rotate(45deg);display:inline-block"></span>NUEVO VALE
+    </button>
+
+    <nav style="display:flex;flex-direction:column;gap:22px;flex:1">
+      <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <button onClick="{{ g.toggle }}" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 10px 8px;border:none;background:none;cursor:pointer;font:500 9px/1 Geist,sans-serif;letter-spacing:.24em;color:rgba(246,243,237,.32)" style-hover="color:rgba(231,206,146,.8)">
+            <span style="flex:1;text-align:left">{{ g.label }}</span>
+            <span style="{{ g.caret }}"></span>
+          </button>
+          <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+            <button onClick="{{ it.go }}" style="{{ it.style }}">
+              <span style="{{ it.dot }}"></span>
+              <span style="flex:1;text-align:left">{{ it.name }}</span>
+              <sc-if value="{{ it.badge }}" hint-placeholder-val="{{ false }}">
+                <span style="padding:2px 7px;border-radius:9px;background:rgba(198,161,91,.16);color:#E7CE92;font:600 9px Geist,sans-serif;letter-spacing:.08em">{{ it.badge }}</span>
+              </sc-if>
+            </button>
+          </sc-for>
+        </div>
+      </sc-for>
+    </nav>
+
+    <div style="border-top:1px solid rgba(246,243,237,.08);padding-top:16px;display:flex;align-items:center;gap:11px">
+      <span style="width:34px;height:34px;border-radius:50%;border:1px solid rgba(198,161,91,.5);display:flex;align-items:center;justify-content:center;font:500 12px 'Cormorant Garamond',serif;color:#E7CE92">ML</span>
+      <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+        <span style="font:500 12px/1 Geist,sans-serif;color:#F6F3ED">Mariana López</span>
+        <span style="font:400 10px/1 Geist,sans-serif;color:rgba(246,243,237,.4)">Suc. Centro · Gerente</span>
+      </div>
+      <button onClick="{{ logout }}" title="Salir" style="border:none;background:none;color:rgba(246,243,237,.4);font:400 16px Geist,sans-serif;cursor:pointer" style-hover="color:#C6A15B">⏎</button>
+    </div>
+  </aside>
+
+  <main style="background:#F6F3ED;color:#0B0B0C;display:flex;flex-direction:column">
+    <header style="display:flex;align-items:center;gap:24px;padding:22px 38px;border-bottom:1px solid rgba(11,11,12,.08);background:rgba(246,243,237,.9);position:sticky;top:0;backdrop-filter:blur(6px);z-index:5">
+      <div style="display:flex;flex-direction:column;gap:5px;flex:1">
+        <span style="font:500 9px/1 Geist,sans-serif;letter-spacing:.24em;color:#9C7B36">{{ crumb }}</span>
+        <h2 style="margin:0;font:400 25px/1 'Cormorant Garamond',serif">{{ title }}</h2>
+      </div>
+      <div style="display:flex;align-items:center;gap:9px;padding:10px 14px;border:1px solid rgba(11,11,12,.12);border-radius:2px;background:#fff;width:280px">
+        <span style="width:7px;height:7px;border:1.5px solid rgba(11,11,12,.35);border-radius:50%"></span>
+        <input type="text" placeholder="Buscar vale, cliente o folio…" style="border:none;background:none;flex:1;font:400 12.5px Geist,sans-serif;color:#0B0B0C">
+      </div>
+      <button onClick="{{ openVale }}" style="padding:12px 20px;border:none;border-radius:2px;background:#0B0B0C;color:#E7CE92;font:600 11px Geist,sans-serif;letter-spacing:.18em;cursor:pointer" style-hover="background:#26221b">EMITIR VALE</button>
+    </header>
+
+    <div style="padding:30px 38px 46px;display:flex;flex-direction:column;gap:26px">
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+        <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+          <div style="background:#fff;border:1px solid rgba(11,11,12,.07);border-radius:3px;padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+            <span style="font:500 9px/1 Geist,sans-serif;letter-spacing:.2em;color:rgba(11,11,12,.42)">{{ s.label }}</span>
+            <span style="font:500 30px/1 'Cormorant Garamond',serif">{{ s.value }}</span>
+            <span style="font:400 11px/1 Geist,sans-serif;color:#9C7B36">{{ s.delta }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:grid;grid-template-columns:minmax(560px,1.62fr) minmax(280px,1fr);gap:20px;align-items:start">
+
+        <div style="background:#fff;border:1px solid rgba(11,11,12,.07);border-radius:3px;overflow-x:auto;min-width:0">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid rgba(11,11,12,.07)">
+            <h3 style="margin:0;font:400 18px/1 'Cormorant Garamond',serif">Vales recientes</h3>
+            <div style="display:flex;gap:6px">
+              <span style="padding:6px 12px;border-radius:2px;background:#0B0B0C;color:#E7CE92;font:500 10px Geist,sans-serif;letter-spacing:.12em">TODOS</span>
+              <span style="padding:6px 12px;border-radius:2px;border:1px solid rgba(11,11,12,.12);color:rgba(11,11,12,.55);font:500 10px Geist,sans-serif;letter-spacing:.12em">ACTIVOS</span>
+              <span style="padding:6px 12px;border-radius:2px;border:1px solid rgba(11,11,12,.12);color:rgba(11,11,12,.55);font:500 10px Geist,sans-serif;letter-spacing:.12em">CANJEADOS</span>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:minmax(74px,96px) minmax(150px,1.4fr) minmax(66px,90px) minmax(76px,108px) minmax(74px,90px);gap:12px;padding:12px 22px;background:rgba(11,11,12,.02);font:500 9px Geist,sans-serif;letter-spacing:.18em;color:rgba(11,11,12,.42)">
+            <span>FOLIO</span><span>CLIENTE</span><span>MONTO</span><span>VENCE</span><span>ESTADO</span>
+          </div>
+          <sc-for list="{{ vales }}" as="v" hint-placeholder-count="6">
+            <div style="display:grid;grid-template-columns:minmax(74px,96px) minmax(150px,1.4fr) minmax(66px,90px) minmax(76px,108px) minmax(74px,90px);gap:12px;padding:15px 22px;border-top:1px solid rgba(11,11,12,.055);align-items:center;font:400 12.5px Geist,sans-serif" style-hover="background:rgba(198,161,91,.05)">
+              <span style="font:500 11.5px ui-monospace,Menlo,monospace;color:#9C7B36">{{ v.folio }}</span>
+              <span style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:500">{{ v.client }}</span><span style="font-size:11px;color:rgba(11,11,12,.42)">{{ v.item }}</span></span>
+              <span style="font-weight:600">{{ v.amount }}</span>
+              <span style="color:rgba(11,11,12,.55)">{{ v.due }}</span>
+              <span style="{{ v.chip }}">{{ v.status }}</span>
+            </div>
+          </sc-for>
+          <div style="padding:14px 22px;border-top:1px solid rgba(11,11,12,.055);display:flex;justify-content:space-between;font:400 11px Geist,sans-serif;color:rgba(11,11,12,.45)">
+            <span>Mostrando 6 de 148 vales</span><a href="#">Ver todos</a>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:20px">
+          <div style="background:#0B0B0C;color:#F6F3ED;border-radius:3px;padding:22px;position:relative;overflow:hidden">
+            <div style="position:absolute;width:220px;height:220px;right:-110px;top:-90px;border:1px solid rgba(198,161,91,.3);transform:rotate(45deg)"></div>
+            <span style="font:500 9px/1 Geist,sans-serif;letter-spacing:.24em;color:rgba(231,206,146,.7)">VALE EN CURSO</span>
+            <div style="display:flex;flex-direction:column;gap:4px;margin:16px 0 18px">
+              <span style="font:400 34px/1 'Cormorant Garamond',serif;color:#E7CE92">$12,400</span>
+              <span style="font:400 12px Geist,sans-serif;color:rgba(246,243,237,.5)">Folio AR-2451 · Anillo oro 14k</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="height:3px;background:rgba(246,243,237,.14);border-radius:2px"><div style="width:62%;height:3px;background:#C6A15B;border-radius:2px"></div></div>
+              <span style="font:400 11px Geist,sans-serif;color:rgba(246,243,237,.45)">$7,700 abonados · 3 de 5 pagos</span>
+            </div>
+            <button style="margin-top:20px;width:100%;padding:12px;border:1px solid rgba(198,161,91,.45);border-radius:2px;background:transparent;color:#E7CE92;font:600 10.5px Geist,sans-serif;letter-spacing:.18em;cursor:pointer" style-hover="background:rgba(198,161,91,.14)">REGISTRAR ABONO</button>
+          </div>
+
+          <div style="background:#fff;border:1px solid rgba(11,11,12,.07);border-radius:3px;padding:20px 22px;display:flex;flex-direction:column;gap:16px">
+            <h3 style="margin:0;font:400 18px/1 'Cormorant Garamond',serif">Clientes nuevos</h3>
+            <sc-for list="{{ clients }}" as="c" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="width:32px;height:32px;border-radius:50%;background:rgba(198,161,91,.14);display:flex;align-items:center;justify-content:center;font:500 12px 'Cormorant Garamond',serif;color:#9C7B36">{{ c.ini }}</span>
+                <span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font:500 12.5px Geist,sans-serif">{{ c.name }}</span><span style="font:400 11px Geist,sans-serif;color:rgba(11,11,12,.42)">{{ c.meta }}</span></span>
+                <span style="font:400 11px Geist,sans-serif;color:rgba(11,11,12,.35)">{{ c.when }}</span>
+              </div>
+            </sc-for>
+            <button onClick="{{ goClients }}" style="padding:11px;border:1px solid rgba(11,11,12,.14);border-radius:2px;background:transparent;font:500 10.5px Geist,sans-serif;letter-spacing:.16em;color:rgba(11,11,12,.7);cursor:pointer" style-hover="border-color:#C6A15B;color:#0B0B0C">REGISTRAR CLIENTE</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<sc-if value="{{ valeOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;inset:0;background:rgba(11,11,12,.55);display:flex;align-items:center;justify-content:center;z-index:40;padding:40px" onClick="{{ closeVale }}">
+  <div style="width:480px;background:#F6F3ED;border-radius:4px;padding:32px;display:flex;flex-direction:column;gap:22px;animation:ar-in .28s ease both" onClick="{{ stop }}">
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <span style="font:500 9px/1 Geist,sans-serif;letter-spacing:.26em;color:#9C7B36">NUEVO VALE DIGITAL</span>
+      <h3 style="margin:0;font:400 27px/1.1 'Cormorant Garamond',serif;color:#0B0B0C">Folio AR-2452</h3>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <label style="display:flex;flex-direction:column;gap:6px;grid-column:span 2"><span style="font:500 9.5px Geist,sans-serif;letter-spacing:.16em;color:rgba(11,11,12,.5)">CLIENTE</span><input type="text" value="Regina Fuentes" style="padding:12px;border:1px solid rgba(11,11,12,.14);border-radius:2px;background:#fff;font:400 13px Geist,sans-serif"></label>
+      <label style="display:flex;flex-direction:column;gap:6px"><span style="font:500 9.5px Geist,sans-serif;letter-spacing:.16em;color:rgba(11,11,12,.5)">MONTO</span><input type="text" value="$8,900" style="padding:12px;border:1px solid rgba(11,11,12,.14);border-radius:2px;background:#fff;font:400 13px Geist,sans-serif"></label>
+      <label style="display:flex;flex-direction:column;gap:6px"><span style="font:500 9.5px Geist,sans-serif;letter-spacing:.16em;color:rgba(11,11,12,.5)">VIGENCIA</span><input type="text" value="30 días" style="padding:12px;border:1px solid rgba(11,11,12,.14);border-radius:2px;background:#fff;font:400 13px Geist,sans-serif"></label>
+      <label style="display:flex;flex-direction:column;gap:6px;grid-column:span 2"><span style="font:500 9.5px Geist,sans-serif;letter-spacing:.16em;color:rgba(11,11,12,.5)">PIEZA / CONCEPTO</span><input type="text" value="Collar oro 18k con dije" style="padding:12px;border:1px solid rgba(11,11,12,.14);border-radius:2px;background:#fff;font:400 13px Geist,sans-serif"></label>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button onClick="{{ closeVale }}" style="flex:1;padding:13px;border:1px solid rgba(11,11,12,.16);border-radius:2px;background:transparent;font:500 11px Geist,sans-serif;letter-spacing:.16em;color:rgba(11,11,12,.65);cursor:pointer">CANCELAR</button>
+      <button onClick="{{ closeVale }}" style="flex:1.4;padding:13px;border:none;border-radius:2px;background:#0B0B0C;color:#E7CE92;font:600 11px Geist,sans-serif;letter-spacing:.18em;cursor:pointer">GENERAR Y ENVIAR</button>
+    </div>
+  </div>
+</div>
+</sc-if>
+</sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { screen: 'login', nav: 'Vales digitales', valeOpen: false, open: { 'OPERACIÓN': true, 'CATÁLOGO': true, 'ADMINISTRACIÓN': false } };
+
+  navGroups() {
+    return [
+      { label: 'OPERACIÓN', items: ['Inicio', 'Vales digitales', 'Abonos y pagos', 'Clientes'] },
+      { label: 'CATÁLOGO', items: ['Piezas', 'Sucursales'] },
+      { label: 'ADMINISTRACIÓN', items: ['Reportes', 'Usuarios', 'Ajustes'] }
+    ];
+  }
+
+  itemStyle(active) {
+    return 'display:flex;align-items:center;gap:11px;width:100%;padding:10px 11px;border:none;border-radius:3px;cursor:pointer;font:500 13px Geist,sans-serif;letter-spacing:-.005em;transition:background .18s;'
+      + (active
+        ? 'background:rgba(198,161,91,.14);color:#F6F3ED;box-shadow:inset 2px 0 0 #C6A15B;'
+        : 'background:transparent;color:rgba(246,243,237,.6);');
+  }
+
+  renderVals() {
+    const badges = { 'Vales digitales': '24', 'Abonos y pagos': '5' };
+    const groups = this.navGroups().map(g => ({
+      label: g.label,
+      caret: 'width:5px;height:5px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transition:transform .2s;transform:rotate(' + (this.state.open[g.label] ? '45deg' : '-45deg') + ')',
+      toggle: () => this.setState(s => ({ open: Object.assign({}, s.open, { [g.label]: !s.open[g.label] }) })),
+      items: (this.state.open[g.label] ? g.items : []).map(name => {
+        const active = this.state.nav === name;
+        return {
+          name, badge: badges[name] || null,
+          style: this.itemStyle(active),
+          dot: 'width:6px;height:6px;transform:rotate(45deg);display:inline-block;background:' + (active ? '#C6A15B' : 'rgba(246,243,237,.22)'),
+          go: () => this.setState({ nav: name })
+        };
+      })
+    }));
+
+    const chip = (kind) => {
+      const c = { activo: ['rgba(198,161,91,.16)', '#8A6A22'], canjeado: ['rgba(11,11,12,.06)', 'rgba(11,11,12,.55)'], vencido: ['rgba(150,60,45,.1)', '#8E4534'] }[kind];
+      return 'justify-self:start;padding:4px 10px;border-radius:2px;font:600 9.5px Geist,sans-serif;letter-spacing:.1em;background:' + c[0] + ';color:' + c[1];
+    };
+
+    const vales = [
+      ['AR-2451', 'Regina Fuentes', 'Anillo oro 14k · solitario', '$12,400', '12 sep 2026', 'ACTIVO', 'activo'],
+      ['AR-2450', 'Jorge Medina', 'Cadena plata 925', '$3,150', '09 sep 2026', 'ACTIVO', 'activo'],
+      ['AR-2449', 'Luisa Ontiveros', 'Arracadas oro 18k', '$6,780', '02 sep 2026', 'CANJEADO', 'canjeado'],
+      ['AR-2448', 'Familia Rangel', 'Juego de argollas', '$21,900', '28 ago 2026', 'ACTIVO', 'activo'],
+      ['AR-2447', 'Ana Cristina Vega', 'Pulsera tejido italiano', '$4,320', '14 ago 2026', 'VENCIDO', 'vencido'],
+      ['AR-2446', 'Emilio Cárdenas', 'Dije diamante 0.25ct', '$18,050', '11 ago 2026', 'CANJEADO', 'canjeado']
+    ].map(v => ({ folio: v[0], client: v[1], item: v[2], amount: v[3], due: v[4], status: v[5], chip: chip(v[6]) }));
+
+    return {
+      isLogin: this.state.screen === 'login',
+      isApp: this.state.screen === 'app',
+      valeOpen: this.state.valeOpen,
+      crumb: 'PANEL / ' + this.state.nav.toUpperCase(),
+      title: this.state.nav === 'Inicio' ? 'Resumen del día' : this.state.nav,
+      groups, vales,
+      stats: [
+        { label: 'VALES ACTIVOS', value: '24', delta: '+3 esta semana' },
+        { label: 'MONTO EN VALES', value: '$186,4k', delta: '62% ya abonado' },
+        { label: 'CLIENTES NUEVOS', value: '11', delta: 'Agosto 2026' },
+        { label: 'POR VENCER', value: '4', delta: 'En los próximos 7 días' }
+      ],
+      clients: [
+        { ini: 'RF', name: 'Regina Fuentes', meta: '81 2244 1190 · Centro', when: 'Hoy' },
+        { ini: 'JM', name: 'Jorge Medina', meta: '81 1902 3378 · Cumbres', when: 'Ayer' },
+        { ini: 'AV', name: 'Ana Cristina Vega', meta: '81 3311 4402 · Centro', when: '2 días' }
+      ],
+      enter: () => this.setState({ screen: 'app' }),
+      logout: () => this.setState({ screen: 'login', valeOpen: false }),
+      openVale: () => this.setState({ valeOpen: true }),
+      closeVale: () => this.setState({ valeOpen: false }),
+      goClients: () => this.setState({ nav: 'Clientes' }),
+      stop: (e) => e.stopPropagation()
+    };
+  }
+}
+
+</script>
+</body>
+</html>

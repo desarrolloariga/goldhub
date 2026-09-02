@@ -1,0 +1,186 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────
+   GOLD HUB · Sistema de diseño
+
+   La estructura viene del mockup en design/panel.dc.html; la paleta, no. Se
+   neutralizó a propósito: en cada vale imprime el logotipo de una tienda
+   distinta, y un cromado de marca fuerte competiría con todos ellos.
+   ───────────────────────────────────────────────────────────── */
+
+@theme {
+  /* Superficies
+     El carbón es cálido y no negro puro: convive con el crema del área de
+     trabajo, que es el mismo papel del vale (ver PALETA en
+     lib/vale-plantilla.ts). Los dos tienen que ser el mismo color, o la
+     tarjeta parecerá recortada de otro sitio. */
+  --color-ink: #1a1714; /* carbón cálido / panel oscuro */
+  --color-ink-soft: #211d18; /* degradado del sidebar */
+  --color-ink-raised: #2e2820; /* hover de botón oscuro */
+  --color-bone: #f5f2ec; /* crema, fondo del área de trabajo */
+  --color-paper: #ffffff; /* tarjetas y campos */
+
+  /* Taupe
+     Era un dorado de joyería, y era el de una marca concreta. Aquí el color
+     de cada tienda lo pone su logotipo, así que el cromado del sistema se
+     retira a un neutro cálido: acompaña a cualquier logotipo sin competir
+     con ninguno. Cuatro pasos porque el acento vive sobre dos fondos —el
+     carbón del lateral y el crema del trabajo— y ninguno sirve para los dos. */
+  --color-taupe: #8a7a61; /* acento principal */
+  --color-taupe-light: #cbbba0; /* texto sobre oscuro */
+  --color-taupe-dark: #6e6151; /* texto sobre crema */
+  --color-taupe-deep: #574c3f; /* chips de estado */
+
+  /* Semánticos */
+  --color-clay: #8e4534; /* vencido / error */
+  --color-sage: #4a6b4f; /* canjeado / éxito */
+
+  /* ── Series de datos ───────────────────────────────────────────────────
+     Identidad de cada tipo de vale en gráficas y distintivos. El color va
+     con la entidad, no con su posición: A1 es siempre ámbar aunque quede
+     tercero en un ranking.
+
+     Los cuatro pasan las cinco comprobaciones de color sobre fondo blanco
+     (scripts/validate_palette.js): banda de luminosidad, piso de croma,
+     ΔE 10.7 en el peor par bajo daltonismo —el piso es 8—, ΔE 15.6 con
+     visión normal y contraste ≥3:1.
+     No sustituir un valor sin volver a validarlos como conjunto, y con
+     `--pairs all`: al ser cuatro ya no basta comprobar pares adyacentes. */
+  --color-serie-a1: #a17916;
+  --color-serie-a2: #215ba3;
+  --color-serie-a3: #9e3b24;
+  --color-serie-a4: #17997a;
+
+  /* Pasos oscuros de los mismos tonos, para texto sobre su propio lavado. */
+  --color-serie-a1-texto: #7a5b0f;
+  --color-serie-a2-texto: #1a4a85;
+  --color-serie-a3-texto: #7e2e1b;
+  --color-serie-a4-texto: #0c604d;
+
+  /* Cromo de las gráficas: retrocede, nunca compite con los datos. */
+  --color-rejilla: #e7e3da;
+  --color-eje: #cdc7bb;
+
+  /* Tipografía */
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-cormorant), ui-serif, Georgia, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, Menlo, monospace;
+
+  /* Interletraje de la marca */
+  --tracking-brand: 0.42em;
+  --tracking-eyebrow: 0.28em;
+  --tracking-label: 0.24em;
+  --tracking-action: 0.18em;
+  --tracking-field: 0.16em;
+
+  /* Geometría: la marca usa esquinas casi rectas */
+  --radius-field: 2px;
+  --radius-card: 3px;
+  --radius-panel: 4px;
+
+  /* Movimiento */
+  --animate-rise: rise 0.5s ease both;
+  --animate-rise-fast: rise 0.28s ease both;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/*
+ * Fuera de `@theme` a propósito: Tailwind v4 poda de ahí las variables que no
+ * ve usadas en un nombre de clase, y estas se consumen en `style` en línea
+ * desde el mapa de calor. Dentro del bloque de tema desaparecían del CSS
+ * construido y las celdas salían en blanco.
+ */
+:root {
+/* ── Rampa secuencial ─────────────────────────────────────────────────
+   Un solo tono, de claro a oscuro, para magnitud: cuánto, no cuál. La
+   usa el mapa de calor de ventas.
+
+   Empieza en 2.10:1 sobre el papel y no más claro: los pasos por encima
+   de esa luminosidad no se distinguían del fondo, y una celda invisible
+   no dice «poco», dice «no sé». El blanco queda libre para la celda sin
+   movimiento, que así se lee como ausencia y no como valor mínimo.
+
+   Luminosidad estrictamente decreciente, comprobada. Al cambiar un paso
+   hay que volver a comprobarlo: el orden de luminosidad ES la escala. */
+  --calor-1: #cfaf6d;
+  --calor-2: #c09c52;
+  --calor-3: #b08a3e;
+  --calor-4: #9e782f;
+  --calor-5: #8b6725;
+  --calor-6: #75561c;
+  --calor-7: #5e4315;
+}
+
+@layer base {
+  html {
+    background: var(--color-ink);
+    color: var(--color-bone);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  ::placeholder {
+    color: color-mix(in srgb, var(--color-ink) 32%, transparent);
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-taupe) 30%, transparent);
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+  }
+}
+
+@layer components {
+  /* Textura de líneas diagonales del panel de acceso */
+  .trama-diagonal {
+    background-image: repeating-linear-gradient(
+      135deg,
+      transparent 0 22px,
+      var(--color-taupe) 22px 23px
+    );
+  }
+
+  /*
+   * Textura del vale: líneas diagonales finas sobre el negro mate.
+   *
+   * Es la misma trama que dibuja el PNG del servidor —ver `Textura` en
+   * lib/vale-imagen.tsx—, donde va como patrón SVG porque Satori no aplica
+   * degradados repetidos. Los 9.9px son el paso perpendicular de una retícula
+   * de 14px a 45°, y el 1.4px, el grosor del trazo.
+   */
+  .vale-textura {
+    background-image: repeating-linear-gradient(
+      135deg,
+      transparent 0 8.5px,
+      #e4dfd5 8.5px 9.9px
+    );
+  }
+
+  /* Halo radial cálido detrás de la firma del acceso */
+  .halo-calido {
+    background: radial-gradient(120% 90% at 20% 10%, #262019 0%, #1a1714 62%);
+  }
+
+  .lateral-degradado {
+    background: linear-gradient(180deg, var(--color-ink-soft) 0%, var(--color-ink) 100%);
+  }
+}

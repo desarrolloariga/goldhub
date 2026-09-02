@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!--
+    Favicon tipográfico: el monograma de GOLD HUB en los colores de la marca
+    (#0B0B0C tinta, #C6A15B oro). Es un SVG y no un PNG derivado de un
+    logotipo porque ya no hay logotipo del que derivarlo: se edita a mano y
+    ningún script lo regenera.
+
+    La familia es genérica a propósito. El favicon lo compone el navegador,
+    que no carga las fuentes de la aplicación; una serif del sistema es lo
+    más cerca de Cormorant que se puede pedir a 16 px.
+  -->
+  <rect width="64" height="64" rx="14" fill="#0B0B0C" />
+  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="13.25" fill="none" stroke="#C6A15B" stroke-opacity="0.45" stroke-width="1.5" />
+  <text
+    x="32"
+    y="41.5"
+    text-anchor="middle"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="27"
+    letter-spacing="1.5"
+    fill="#E7CE92"
+  >GH</text>
+</svg>

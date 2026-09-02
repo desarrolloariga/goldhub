@@ -38,11 +38,15 @@ export function DatosTienda({
         placeholder="Calle y número"
         defaultValue={direccion ?? ""}
       />
+      {/* Se dice para qué sirve porque no es un dato de archivo: va impreso
+          en el segundo paso de cada vale que emite la tienda, y sin él ese
+          paso solo puede decir que se muestre el código en caja. */}
       <Campo
         etiqueta="TELÉFONO"
         name="telefono"
-        placeholder="2345 6789"
+        placeholder="+502 5555-1234"
         defaultValue={telefono ?? ""}
+        ayuda="Sale impreso en tus vales: es el número al que el cliente le escribe a su asesora. Déjalo vacío para quitarlo."
       />
 
       <label className="border-ink/10 rounded-field flex cursor-pointer items-start gap-3 border px-4 py-3">

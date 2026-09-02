@@ -15,6 +15,7 @@ import { FormularioTienda } from "./formulario";
 import { LogoTienda } from "./logo-tienda";
 import { NombreTienda } from "./nombre-tienda";
 import { QrTienda } from "./qr-tienda";
+import { TelefonoTienda } from "./telefono-tienda";
 
 export const metadata: Metadata = { title: "Tiendas" };
 
@@ -91,6 +92,15 @@ export default async function PaginaTiendas() {
                         : "Sin cuenta de acceso"}
                       {t.correlativo > 0 ? ` · ${t.correlativo} vales` : ""}
                     </span>
+                    {/* El número va impreso en el segundo paso de sus vales,
+                        y se pone desde aquí porque el administrador no tiene
+                        «Mi tienda»: esa pantalla exige una tienda en la
+                        sesión y la suya no la tiene. */}
+                    <TelefonoTienda
+                      id={t.id}
+                      nombre={t.nombre}
+                      telefono={t.telefono}
+                    />
                   </span>
 
                   <span className="flex flex-wrap items-center gap-2">

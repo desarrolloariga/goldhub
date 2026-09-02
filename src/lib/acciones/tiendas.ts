@@ -222,6 +222,60 @@ export async function renombrarTienda(
     : { ok: `Ahora se llama «${nombre}».` };
 }
 
+export type EstadoTelefono = { error?: string; ok?: string } | null;
+
+/**
+ * Pone o cambia el teléfono de una tienda desde el panel del administrador.
+ *
+ * La tienda ya lo edita desde «Mi tienda», pero esa acción exige una tienda
+ * en la sesión y el administrador no tiene ninguna, así que necesita este
+ * camino propio. Y hace falta: el número va impreso en el segundo paso del
+ * vale, y esperar a que cada una entre a ponérselo deja vales repartidos sin
+ * decir a quién escribir.
+ *
+ * Vacío es un valor legítimo: guarda nulo y el paso vuelve a su texto de
+ * siempre, que es la forma de retirar un número que dejó de atender.
+ */
+export async function guardarTelefonoTienda(
+  _previo: EstadoTelefono,
+  formData: FormData,
+): Promise<EstadoTelefono> {
+  await requerirAdmin();
+
+  const id = Number(formData.get("id"));
+  if (!Number.isInteger(id) || id <= 0) return { error: "Tienda inválida." };
+
+  const r = z
+    .string()
+    .trim()
+    .max(40, "El teléfono es demasiado largo.")
+    .transform((v) => (v === "" ? null : v))
+    .safeParse(formData.get("telefono") ?? "");
+
+  if (!r.success) {
+    return { error: r.error.issues[0]?.message ?? "Teléfono inválido." };
+  }
+  const telefono = r.data;
+
+  const { data, error } = await db()
+    .from("tiendas")
+    .update({ telefono })
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { error: `No se pudo guardar: ${error.message}` };
+  if (!data) return { error: "Esa tienda ya no existe." };
+
+  revalidatePath("/panel/tiendas");
+  revalidatePath("/panel/mi-tienda");
+  // El vale lee el teléfono en vivo, así que las pantallas que llevan la
+  // ficha cacheada tienen que volver a pedirla.
+  revalidatePath("/panel/vales");
+
+  return { ok: telefono ? `Teléfono guardado.` : "Teléfono quitado." };
+}
+
 /**
  * Activa o desactiva una tienda, y con ella su cuenta.
  *

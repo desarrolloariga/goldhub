@@ -13,6 +13,7 @@ import { fecha } from "@/lib/format";
 import { BotonClave } from "./boton-clave";
 import { FormularioTienda } from "./formulario";
 import { LogoTienda } from "./logo-tienda";
+import { NombreTienda } from "./nombre-tienda";
 import { QrTienda } from "./qr-tienda";
 
 export const metadata: Metadata = { title: "Tiendas" };
@@ -74,16 +75,12 @@ export default async function PaginaTiendas() {
                   />
 
                   <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
-                    <span className="flex items-center gap-2">
-                      <span
-                        className={`truncate text-[13.5px] font-medium ${t.activo ? "" : "text-ink/40"}`}
-                      >
-                        {t.nombre}
-                      </span>
-                      <span className="text-taupe-dark shrink-0 font-mono text-[11px] font-semibold">
-                        {t.prefijo}
-                      </span>
-                    </span>
+                    <NombreTienda
+                      id={t.id}
+                      nombre={t.nombre}
+                      prefijo={t.prefijo}
+                      activa={t.activo}
+                    />
                     <span className="text-ink/42 truncate text-[11px]">
                       {t.cuenta
                         ? `${t.cuenta.correo} · ${
@@ -144,8 +141,14 @@ export default async function PaginaTiendas() {
         </Tarjeta>
 
         <p className="text-ink/45 m-0 px-1 text-[11.5px] leading-relaxed">
-          Pulsa el logotipo de una tienda para cambiarlo. Cada tienda puede
-          hacerlo también desde su cuenta, en Mi tienda.
+          Pulsa el logotipo de una tienda para cambiarlo, o el lápiz junto a
+          su nombre para corregirlo. Cada tienda puede cambiar su logotipo
+          también desde su cuenta, en Mi tienda.
+          <br />
+          <br />
+          El prefijo no se cambia: va copiado dentro de cada código ya
+          entregado. El nombre sí, y se lee en vivo, así que corregirlo
+          arregla de paso los vales que ya están en manos de clientes.
           <br />
           <br />
           Las tiendas no se borran: desactivarlas cierra su sesión y las quita

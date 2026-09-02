@@ -150,6 +150,78 @@ export async function crearTienda(
   };
 }
 
+export type EstadoRenombrar = { error?: string; ok?: string } | null;
+
+/**
+ * Cambia el nombre de una tienda. Solo el administrador.
+ *
+ * El nombre sí se puede cambiar; el prefijo no. La diferencia está en cómo
+ * llegan a los vales ya emitidos: el nombre se lee en vivo de la tienda, así
+ * que corregir una errata arregla de paso todos los vales entregados —su
+ * página pública y su imagen se rehacen con el nombre nuevo—. El prefijo, en
+ * cambio, está copiado dentro de cada código: cambiarlo dejaría a
+ * `ARI-000001` sin ninguna tienda a la que pertenecer.
+ *
+ * La cuenta lleva el nombre de la tienda copiado, y hay que moverlo con él:
+ * es lo que se ve en la barra lateral y lo que sale como emisora al validar
+ * un vale en caja.
+ */
+export async function renombrarTienda(
+  _previo: EstadoRenombrar,
+  formData: FormData,
+): Promise<EstadoRenombrar> {
+  await requerirAdmin();
+
+  const id = Number(formData.get("id"));
+  if (!Number.isInteger(id) || id <= 0) return { error: "Tienda inválida." };
+
+  const r = z
+    .string()
+    .trim()
+    .min(2, "El nombre es demasiado corto.")
+    .max(120, "El nombre es demasiado largo.")
+    .safeParse(formData.get("nombre") ?? "");
+
+  if (!r.success) return { error: r.error.issues[0]?.message ?? "Nombre inválido." };
+  const nombre = r.data;
+
+  const { data, error } = await db()
+    .from("tiendas")
+    .update({ nombre })
+    .eq("id", id)
+    .select("nombre")
+    .maybeSingle();
+
+  if (error) {
+    if (error.code === "23505") {
+      return { error: `Ya existe una tienda llamada «${nombre}».` };
+    }
+    return { error: `No se pudo cambiar el nombre: ${error.message}` };
+  }
+  if (!data) return { error: "Esa tienda ya no existe." };
+
+  // La tienda es la fuente de la verdad, así que se cambia primero. Si esto
+  // otro falla, la cuenta se queda con el nombre viejo —se ve raro en la
+  // barra lateral, nada más— y se arregla volviendo a renombrar.
+  const { error: errorCuenta } = await db()
+    .from("usuarios")
+    .update({ nombre })
+    .eq("tienda_id", id);
+
+  revalidatePath("/panel/tiendas");
+  revalidatePath("/panel/mi-tienda");
+  // Los vales leen el nombre en vivo, así que su página y su imagen salen ya
+  // con el nuevo. Se revalidan las pantallas internas que lo llevan cacheado.
+  revalidatePath("/panel/vales");
+  revalidatePath("/panel/reportes");
+
+  return errorCuenta
+    ? {
+        error: `La tienda se renombró, pero su cuenta se quedó con el nombre anterior: ${errorCuenta.message}`,
+      }
+    : { ok: `Ahora se llama «${nombre}».` };
+}
+
 /**
  * Activa o desactiva una tienda, y con ella su cuenta.
  *

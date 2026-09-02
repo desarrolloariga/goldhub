@@ -39,10 +39,12 @@ const partes = [
   "-- GENERADO AUTOMÁTICAMENTE por scripts/empaquetar-migraciones.mjs.",
   "-- No editar a mano: los cambios van en supabase/migrations/.",
   "--",
-  "-- SOLO PARA UNA BASE VACÍA. Contiene los `create type` y `create table`",
-  "-- originales, que sobre una base ya montada fallan con 42710 y hacen",
-  "-- rollback de todo el bloque: parece que no pasó nada. Para actualizar",
-  "-- una base existente, aplica el archivo suelto de supabase/migrations/.",
+  "-- Se puede aplicar sobre una base vacía o sobre una que ya tenga una",
+  "-- versión anterior: las tablas y los tipos van guardados con `if not",
+  "-- exists`, y las funciones y las vistas se borran y se rehacen. Eso",
+  "-- último hace falta porque `create or replace` no puede cambiar el tipo",
+  "-- de retorno de una función (42P13) ni reordenar las columnas de una",
+  "-- vista. Los datos no se tocan.",
   "--",
   "-- Cómo aplicarlo: Supabase → SQL Editor → pegar todo → Run.",
   "--",
@@ -99,8 +101,9 @@ console.log(
 );
 for (const a of archivos) console.log(`  · ${a}`);
 console.log(
-  "\nSOLO para una base vacía: sobre una ya montada falla en el primer" +
-    "\n`create type` y revierte el bloque entero, así que parece que no pasó" +
-    "\nnada. Para actualizar una base existente, aplica el archivo suelto de" +
-    "\nsupabase/migrations/.\n",
+  "\nSirve para una base vacía y para una que ya tenga una versión anterior:" +
+    "\nlas funciones y las vistas se rehacen, los datos se quedan. Pégalo en" +
+    "\nSupabase → SQL Editor → Run." +
+    "\n\nEnsáyalo antes con `npm run test:esquema`, que lo aplica dos veces" +
+    "\nseguidas contra un Postgres real sin tocar la base.\n",
 );

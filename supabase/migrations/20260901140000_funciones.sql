@@ -27,6 +27,41 @@
 -- autorregistro, que desapareció al pasar de vendedoras a tiendas.
 -- ─────────────────────────────────────────────────────────────────────────
 
+-- ═══ Las funciones se rehacen desde cero ═════════════════════════════════
+--
+-- `create or replace function` no puede cambiar el tipo de retorno de una
+-- función que ya existe —ni la fila que definen sus parámetros OUT—, y
+-- añadirle un parámetro crea una SOBRECARGA en vez de sustituirla. Las dos
+-- cosas convierten una migración reaplicada en un error a mitad, o peor, en
+-- dos versiones de la misma función conviviendo y PostgREST eligiendo una.
+--
+-- Así que se borran todas antes de volver a crearlas. Es lo que hace que
+-- este archivo se pueda aplicar sobre un esquema ya montado y no solo sobre
+-- uno vacío.
+--
+-- Se salvan las dos de las que cuelga algo: `fn_token_publico` es el valor
+-- por omisión de `tiendas.token` y `vales.token`, y `fn_marcar_actualizacion`
+-- está enganchada como trigger en cuatro tablas. Borrarlas exigiría CASCADE
+-- y se llevaría por delante esos valores y esos triggers. Las dos se
+-- sustituyen en su sitio, y su forma no cambia nunca.
+
+do $$
+declare
+  f record;
+begin
+  for f in
+    select p.oid::regprocedure as firma
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'smartvalehubgold'
+       and p.proname not in ('fn_token_publico', 'fn_marcar_actualizacion')
+  loop
+    execute format('drop function if exists %s', f.firma);
+  end loop;
+end
+$$;
+
+
 -- ═══ Utilidades ══════════════════════════════════════════════════════════
 
 create or replace function smartvalehubgold.fn_normalizar_telefono(p_telefono text)

@@ -7,15 +7,19 @@
  * en orden y ejerce las reglas de negocio contra él. No toca la red ni
  * necesita credenciales: se puede correr en cualquier máquina y en CI.
  *
- * Por qué existe, teniendo ya `test:negocio`: el proyecto de Supabase está
- * compartido con la aplicación de ARIGA, que corre en producción en el
- * esquema vecino. Una migración con un error de sintaxis a mitad se aplica a
- * medias y hay que deshacerla a mano sobre esa base. Aquí se ensaya antes,
- * cuantas veces haga falta, sin consecuencias.
+ * Por qué existe: el proyecto de Supabase está compartido con la aplicación
+ * de ARIGA, que corre en producción en el esquema vecino. Una migración con
+ * un error a mitad se aplica a medias y hay que deshacerla a mano sobre esa
+ * base. Aquí se ensaya antes, cuantas veces haga falta, sin consecuencias.
+ *
+ * Las aplica DOS veces, y la segunda sobre un esquema al que se le ha
+ * plantado una versión anterior de una función y de una vista. Reaplicar es
+ * el caso real —la base ya está montada y hay que actualizarla— y es justo
+ * donde `create or replace` se queda corto.
  *
  * Lo que NO cubre: la concurrencia real. PGlite tiene una sola conexión, así
  * que no puede probar que dos cajas emitiendo a la vez se lleven correlativos
- * distintos. Eso lo verifica `npm run test:negocio` contra la base real.
+ * distintos. Eso hay que verificarlo contra la base real.
  */
 
 import { PGlite } from "@electric-sql/pglite";
@@ -82,23 +86,40 @@ const uno = async (sql, params = []) => (await db.query(sql, params)).rows[0];
 console.log("\nGOLD HUB SMART VALE · ensayo del esquema (Postgres 17 en WASM)\n");
 
 // ── Las migraciones se aplican ───────────────────────────────────────────
-console.log("Migraciones");
-for (const f of readdirSync(migraciones).filter((f) => f.endsWith(".sql")).sort()) {
-  const sql = readFileSync(path.join(migraciones, f), "utf8");
-  try {
-    await db.exec(sql);
-    ok++;
-    console.log(`  [ok] ${f}`);
-  } catch (e) {
-    mal++;
-    console.log(`  [!!] ${f}\n       ${e.message}`);
-    if (e.position) {
-      const linea = sql.slice(0, Number(e.position)).split("\n").length;
-      console.log(`       línea ~${linea}: ${sql.split("\n")[linea - 1]?.trim()}`);
+
+const ARCHIVOS = readdirSync(migraciones)
+  .filter((f) => f.endsWith(".sql"))
+  .sort();
+
+/** Aplica las migraciones en orden. Devuelve el fallo, o `null` si entraron. */
+async function aplicarMigraciones({ ruidoso = false } = {}) {
+  for (const f of ARCHIVOS) {
+    const sql = readFileSync(path.join(migraciones, f), "utf8");
+    try {
+      await db.exec(sql);
+      if (ruidoso) {
+        ok++;
+        console.log(`  [ok] ${f}`);
+      }
+    } catch (e) {
+      let detalle = "";
+      if (e.position) {
+        const n = sql.slice(0, Number(e.position)).split("\n").length;
+        detalle = `\n       línea ~${n}: ${sql.split("\n")[n - 1]?.trim()}`;
+      }
+      return { archivo: f, mensaje: e.message + detalle };
     }
-    // Sin esquema no hay nada más que probar.
-    process.exit(1);
   }
+  return null;
+}
+
+console.log("Migraciones");
+const falloInicial = await aplicarMigraciones({ ruidoso: true });
+if (falloInicial) {
+  mal++;
+  console.log(`  [!!] ${falloInicial.archivo}\n       ${falloInicial.mensaje}`);
+  // Sin esquema no hay nada más que probar.
+  process.exit(1);
 }
 
 // ── Alta ─────────────────────────────────────────────────────────────────
@@ -339,6 +360,74 @@ console.log("\nAlmacén de logotipos");
 const bucket = await uno(`select * from storage.buckets where id = 'logos-tiendas'`);
 afirmar("el bucket existe y es público de lectura", bucket?.public === true);
 afirmar("con tope de tamaño", Number(bucket?.file_size_limit) === 262144);
+
+// ── Reaplicar sobre un esquema ya montado ────────────────────────────────
+//
+// Está aquí porque faltaba, y su ausencia costó un error en producción: el
+// ensayo aplicaba las migraciones una sola vez, así que no veía que
+// `create or replace` no puede cambiar el tipo de retorno de una función
+// existente (42P13) ni reordenar las columnas de una vista. La base, ya
+// montada con una versión anterior, rechazaba el archivo entero.
+console.log("\nReaplicación sobre un esquema ya montado");
+
+// Se planta a mano una versión ANTERIOR de las dos cosas que rompen.
+await db.exec(`
+  drop function smartvalehubgold.fn_vales_por_vencer(bigint, integer);
+  create function smartvalehubgold.fn_vales_por_vencer(
+    p_tienda_id bigint default null, p_dias integer default null)
+  returns table (codigo text, dias_restantes integer)
+  language sql stable set search_path = '' as $x$
+    select v.codigo, 0 from smartvalehubgold.vales v;
+  $x$;
+
+  drop view smartvalehubgold.vw_vales_detalle cascade;
+  create view smartvalehubgold.vw_vales_detalle as
+    select v.id, v.codigo from smartvalehubgold.vales v;
+`);
+
+const valesAntes = (
+  await db.query("select count(*)::int n from smartvalehubgold.vales")
+).rows[0].n;
+
+const falloAlReaplicar = await aplicarMigraciones();
+afirmar(
+  "la versión nueva entra sobre una anterior, sin tocar nada a mano",
+  falloAlReaplicar === null,
+  falloAlReaplicar ? `${falloAlReaplicar.archivo}: ${falloAlReaplicar.mensaje}` : "",
+);
+
+const columnas = (
+  await db.query(`
+    select column_name from information_schema.columns
+     where table_schema = 'smartvalehubgold'
+       and table_name = 'vw_vales_detalle'`)
+).rows.map((r) => r.column_name);
+afirmar(
+  "y la vista queda con la forma nueva, no con la vieja",
+  columnas.includes("tienda_logo_ruta"),
+  `${columnas.length} columnas`,
+);
+
+const versiones = (
+  await db.query(`
+    select pg_get_function_result(p.oid) r
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'smartvalehubgold' and p.proname = 'fn_vales_por_vencer'`)
+).rows;
+afirmar(
+  "la función también, y sin dejar una sobrecarga duplicada",
+  versiones.length === 1 && versiones[0].r.includes("portador_telefono"),
+  `${versiones.length} versión(es)`,
+);
+
+const valesDespues = (
+  await db.query("select count(*)::int n from smartvalehubgold.vales")
+).rows[0].n;
+afirmar(
+  "y los datos que ya había siguen ahí",
+  valesAntes > 0 && valesDespues === valesAntes,
+  `${valesAntes} → ${valesDespues}`,
+);
 
 // ── Cierre ───────────────────────────────────────────────────────────────
 console.log(`\n${ok} correctas, ${mal} fallo(s).\n`);

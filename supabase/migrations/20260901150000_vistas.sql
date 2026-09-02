@@ -9,6 +9,32 @@
 -- Todo importe es de oro: es el único material que se vende.
 -- ─────────────────────────────────────────────────────────────────────────
 
+-- ═══ Las vistas se rehacen desde cero ════════════════════════════════════
+--
+-- Por lo mismo que las funciones: `create or replace view` solo admite
+-- AÑADIR columnas al final. Cambiar el orden, el nombre o el tipo de una que
+-- ya estaba —como pasó al colgar el logotipo de la tienda en el vale— falla
+-- con «cannot change name of view column».
+--
+-- Van con CASCADE porque unas leen de otras: `vw_metricas_generales` sale de
+-- `vw_vales_detalle`. Todas se recrean unas líneas más abajo, así que el
+-- CASCADE no se lleva nada que no vuelva.
+
+do $$
+declare
+  v record;
+begin
+  for v in
+    select table_name
+      from information_schema.views
+     where table_schema = 'smartvalehubgold'
+  loop
+    execute format('drop view if exists smartvalehubgold.%I cascade', v.table_name);
+  end loop;
+end
+$$;
+
+
 -- ═══ El vale, con todo lo que se le ha colgado ═══════════════════════════
 --
 -- Es la vista de la que cuelga casi todo lo demás. Los agregados van como

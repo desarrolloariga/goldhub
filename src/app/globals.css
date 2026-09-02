@@ -168,10 +168,13 @@
    * de 14px a 45°, y el 1.4px, el grosor del trazo.
    */
   .vale-textura {
+    /* El tono es PALETA.trama de lib/vale-plantilla.ts, copiado: aquí no
+       llegan sus tokens. Si allí cambia, aquí también, o la tarjeta en
+       pantalla y el PNG del servidor dejan de ser la misma. */
     background-image: repeating-linear-gradient(
       135deg,
       transparent 0 8.5px,
-      #e4dfd5 8.5px 9.9px
+      #f1eee8 8.5px 9.9px
     );
   }
 

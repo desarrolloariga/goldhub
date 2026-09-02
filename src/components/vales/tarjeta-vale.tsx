@@ -25,6 +25,15 @@ import {
 import type { EstadoVale, TipoVale } from "@/lib/supabase/types";
 import { ETIQUETA_TIPO } from "@/lib/supabase/types";
 
+/**
+ * Lado del sello «compártelo», en px.
+ *
+ * Está aquí arriba y no escrito dentro del JSX porque de él sale también el
+ * hueco que baja la firma: `SelloCompartir` se coloca a `lado * 0.22` de la
+ * esquina, así que su borde inferior queda en `lado * 1.22`.
+ */
+const SELLO_LADO = 86;
+
 export type DatosTarjeta = {
   codigo: string;
   /** Identificador del enlace público; el QR lo lleva a él. */
@@ -139,9 +148,25 @@ export function TarjetaVale({
         />
 
         {/* Un vale muerto no invita a compartirse. */}
-        {vigente ? <SelloCompartir lado={86} /> : null}
+        {vigente ? <SelloCompartir lado={SELLO_LADO} /> : null}
 
-        <div className="relative flex flex-col items-center px-6 py-8 sm:px-8">
+        <div
+          className="relative flex flex-col items-center px-6 pb-8 sm:px-8"
+          style={{
+            /*
+              La firma arranca por debajo del sello, que ocupa la esquina de
+              arriba a la derecha. Con nombres de más de dos palabras los dos
+              se cruzaban; el sello no se puede mover porque las otras tres
+              esquinas ya tienen dueño, así que baja el contenido.
+
+              El cálculo sale de `SELLO_LADO` y no de una cifra escrita a
+              mano: con las medidas en dos sitios, el primer ajuste del sello
+              vuelve a dejar el nombre debajo. Es lo mismo que hace el PNG del
+              servidor —ver `tarjetaVertical` en lib/vale-imagen.tsx—.
+            */
+            paddingTop: vigente ? SELLO_LADO * 1.22 + 14 : 32,
+          }}
+        >
           {/* El logotipo de la tienda si lo tiene; si no, su nombre en
               tipografía. El PNG del servidor compone lo mismo —ver `Marca`
               en lib/vale-imagen.tsx—. */}
@@ -154,7 +179,7 @@ export function TarjetaVale({
               className="h-auto max-h-24 w-auto max-w-[70%] object-contain"
             />
           ) : (
-            <FirmaMarca cuerpo={30} ancho={280} nombre={vale.tienda} />
+            <FirmaMarca cuerpo={30} ancho={360} nombre={vale.tienda} />
           )}
 
           <div

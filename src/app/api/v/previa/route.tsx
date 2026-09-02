@@ -18,6 +18,7 @@ export const runtime = "nodejs";
  *   /api/v/previa?formato=social         apaisada 1200×630
  *   /api/v/previa?tienda=Nombre+Largo    probar cómo cae un nombre largo
  *   /api/v/previa?estado=vencido         sin el sello de compartir
+ *   /api/v/previa?logo=1                 con un logotipo apaisado de prueba
  *
  * **Solo en desarrollo.** En producción responde 404: es una ruta pública
  * —cuelga de `/api/v/`, que el proxy deja pasar sin sesión— y no hay razón
@@ -37,6 +38,18 @@ export async function GET(request: NextRequest) {
   const social = params.get("formato") === "social";
   const estado = params.get("estado") === "vencido" ? "vencido" : "activo";
 
+  // Un logotipo apaisado de prueba: es la forma que más se acerca al sello,
+  // y por tanto la que revela si se cruzan.
+  const logo = params.get("logo") === "1"
+    ? "data:image/svg+xml;base64," +
+      Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="160">` +
+          `<rect width="600" height="160" fill="#7A6A52"/>` +
+          `<text x="300" y="100" font-family="serif" font-size="64" fill="#fff" text-anchor="middle">LOGOTIPO</text>` +
+          `</svg>`,
+      ).toString("base64")
+    : null;
+
   const datos: DatosImagenVale = {
     codigo: "MZT-000045",
     tienda: params.get("tienda") ?? "Joyería Mazate",
@@ -45,6 +58,7 @@ export async function GET(request: NextRequest) {
     estado,
     descuentoOro: 15,
     vigencia: "31 oct 2026",
+    logo,
     qr: await qrDataUrl("https://ejemplo.gt/v/previa", {
       tamano: social ? 500 : 480,
       margen: 1,

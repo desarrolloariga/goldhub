@@ -176,6 +176,11 @@ function Marca({
 }) {
   // El logotipo manda cuando lo hay: es la identidad que la tienda eligió.
   // El nombre en tipografía es el respaldo, no la opción secundaria.
+  //
+  // Su caja es más estrecha que la del nombre: el texto se lee bien ocupando
+  // todo el ancho, pero una imagen a esa medida deja de parecer un logotipo y
+  // pasa a parecer un banner. Se limita también el alto, porque los logotipos
+  // de las tiendas no vienen todos con la misma proporción.
   if (logo) {
     return (
       <div style={{ display: "flex" }}>
@@ -183,7 +188,11 @@ function Marca({
         <img
           src={logo}
           alt=""
-          style={{ maxWidth: ancho, maxHeight: cuerpo * 2.2, objectFit: "contain" }}
+          style={{
+            maxWidth: ancho * 0.62,
+            maxHeight: cuerpo * 2.1,
+            objectFit: "contain",
+          }}
         />
       </div>
     );
@@ -393,10 +402,22 @@ export function tarjetaVertical(vale: DatosImagenVale): ReactElement {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
+        /*
+          Desde arriba y no centrado.
+          El contenido tiene que empezar por debajo del sello, que ocupa la
+          esquina de arriba a la derecha: con la firma centrada verticalmente,
+          dónde caía dependía de la altura del resto —un nombre de dos líneas
+          o un logotipo apaisado la subían— y a veces se cruzaban. Anclarla
+          arriba la deja siempre en el mismo sitio, tenga la tienda logotipo
+          o no.
+        */
+        justifyContent: "flex-start",
         backgroundColor: PALETA.fondo,
         fontFamily: SANS,
-        padding: "44px 54px",
+        paddingTop: SELLO_MARGEN + SELLO_LADO + 26,
+        paddingLeft: 54,
+        paddingRight: 54,
+        paddingBottom: 44,
         position: "relative",
       }}
     >
@@ -404,18 +425,6 @@ export function tarjetaVertical(vale: DatosImagenVale): ReactElement {
       <Esquinas margen={22} lado={54} />
       {/* Un vale muerto no invita a compartirse. */}
       {vigente ? <Sello lado={SELLO_LADO} margen={SELLO_MARGEN} /> : null}
-
-      {/*
-        Hueco para que la firma pase por debajo del sello.
-        El sello ocupa la esquina de arriba a la derecha y el nombre de la
-        tienda va centrado: con nombres largos, los dos se cruzaban. Bajar la
-        firma es lo que menos cuesta —el sello tiene que estar arriba, porque
-        las otras tres esquinas ya tienen dueño— y deja al nombre todo el
-        ancho de la tarjeta en vez de los 500 px que le quedaban al lado.
-      */}
-      <div
-        style={{ display: "flex", height: SELLO_MARGEN + SELLO_LADO - 44 + 18 }}
-      />
 
       <Marca cuerpo={62} ancho={620} nombre={vale.tienda} logo={vale.logo} />
 

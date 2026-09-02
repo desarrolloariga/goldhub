@@ -61,7 +61,7 @@ export function EnlacePublico({
         />
 
         <div className="relative flex flex-col items-center px-5 py-7">
-          <FirmaMarca cuerpo={22} ancho={220} nombre={tienda} />
+          <FirmaMarca cuerpo={22} ancho={300} nombre={tienda} />
 
           <div
             className="mt-4 mb-4 h-px w-10 opacity-60"

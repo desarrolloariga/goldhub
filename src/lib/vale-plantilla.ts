@@ -184,16 +184,18 @@ export type TrazoIcono = [string, Record<string, string | number>];
  * dibujen exactamente el mismo icono en vez de dos parecidos.
  */
 const ICONOS: Record<string, TrazoIcono[]> = {
-  // lucide `store`
-  tienda: [
-    ["path", { d: "M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5" }],
-    [
-      "path",
-      {
-        d: "M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244",
-      },
-    ],
-    ["path", { d: "M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05" }],
+  // lucide `user-round`
+  //
+  // Era el local de `store`. El primer paso dejó de mandar a un sitio y
+  // pasó a mandar a una persona, así que un escaparate al lado del texto
+  // contradecía lo que el texto pide.
+  asesora: [
+    // El círculo va como arco dentro de un `path` y no como `circle`: quien
+    // pinta esto —la imagen y la tarjeta— solo distingue `rect` de `path`,
+    // y cualquier otra etiqueta acabaría siendo un <path> sin `d`, es decir
+    // un icono invisible.
+    ["path", { d: "M17 8a5 5 0 1 1-10 0 5 5 0 0 1 10 0Z" }],
+    ["path", { d: "M20 21a8 8 0 0 0-16 0" }],
   ],
   // lucide `scan-qr-code`
   escaner: [
@@ -244,7 +246,7 @@ export type Paso = {
 };
 
 export const PASOS: Paso[] = [
-  { numero: 1, trazos: ICONOS.tienda, texto: "Visita la tienda que te lo entregó." },
+  { numero: 1, trazos: ICONOS.asesora, texto: "Contacta a tu asesora." },
   {
     numero: 2,
     trazos: ICONOS.escaner,

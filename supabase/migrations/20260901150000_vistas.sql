@@ -82,6 +82,12 @@ select
   -- consulta por cada tarjeta compartida no la paga nadie.
   t.logo_ruta           as tienda_logo_ruta,
   t.logo_actualizado_en as tienda_logo_actualizado_en,
+  -- Cuándo cambió la tienda por última vez. El trigger de
+  -- `fecha_actualizacion` salta con cualquier UPDATE, así que esta marca se
+  -- mueve tanto al subir un logotipo como al renombrarla. De ella sale la
+  -- versión que lleva la URL de la imagen del vale: sin algo así, la imagen
+  -- se queda cacheada un día con el aspecto viejo.
+  coalesce(t.fecha_actualizacion, t.fecha_creacion) as tienda_actualizada_en,
 
   coalesce(r.total, 0)::integer      as total_redenciones,
   coalesce(r.difundidas, 0)::integer as redenciones_difundidas,

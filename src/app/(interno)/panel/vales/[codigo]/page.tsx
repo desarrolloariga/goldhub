@@ -13,6 +13,7 @@ import { requerirSesion } from "@/lib/auth/guardas";
 import { redencionesDeVale } from "@/lib/datos/redenciones";
 import { valePorCodigo } from "@/lib/datos/vales";
 import { fecha, fechaHora, moneda } from "@/lib/format";
+import { versionImagen } from "@/lib/compartir";
 import { urlLogo } from "@/lib/logos";
 import { ETIQUETA_SEGMENTO, ETIQUETA_TIPO } from "@/lib/supabase/types";
 
@@ -144,6 +145,7 @@ export default async function PaginaVale({
             descuentoOro: Number(vale.descuento_oro_pct),
             tienda: vale.tienda,
             logo: urlLogo(vale),
+            version: versionImagen(vale.tienda_actualizada_en, vale.tienda_logo_actualizado_en),
             portador: vale.portador,
             telefono: vale.portador_telefono,
             vigencia: fecha(vale.fecha_vencimiento),

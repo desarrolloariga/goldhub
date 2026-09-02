@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 import { TarjetaVale } from "@/components/vales/tarjeta-vale";
 import { valePorToken } from "@/lib/datos/vales";
-import { urlImagenVale, urlPublicaVale } from "@/lib/compartir";
+import { urlImagenVale, urlPublicaVale, versionImagen } from "@/lib/compartir";
 import { fecha } from "@/lib/format";
 import { urlLogo } from "@/lib/logos";
 
@@ -40,7 +40,13 @@ export async function generateMetadata({
       description: descripcion,
       url: urlPublicaVale(vale.token),
       siteName: "GOLD HUB",
-      images: [{ url: urlImagenVale(vale.token), width: 1200, height: 630 }],
+      images: [
+        {
+          url: urlImagenVale(vale.token, versionImagen(vale.tienda_actualizada_en, vale.tienda_logo_actualizado_en)),
+          width: 1200,
+          height: 630,
+        },
+      ],
       type: "website",
       locale: "es_GT",
     },
@@ -48,7 +54,9 @@ export async function generateMetadata({
       card: "summary_large_image",
       title: titulo,
       description: descripcion,
-      images: [urlImagenVale(vale.token)],
+      images: [
+        urlImagenVale(vale.token, versionImagen(vale.tienda_actualizada_en, vale.tienda_logo_actualizado_en)),
+      ],
     },
     robots: { index: false, follow: false },
   };
@@ -77,6 +85,7 @@ export default async function PaginaPublicaVale({
             descuentoOro: Number(vale.descuento_oro_pct),
             tienda: vale.tienda,
             logo: urlLogo(vale),
+            version: versionImagen(vale.tienda_actualizada_en, vale.tienda_logo_actualizado_en),
             portador: vale.portador,
             // Nunca al cliente: el enlace circula entre terceros.
             telefono: "",

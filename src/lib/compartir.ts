@@ -51,21 +51,62 @@ export function urlPublicaVale(token: string, base = baseSitio()) {
   return new URL(`/v/${encodeURIComponent(token)}`, base).toString();
 }
 
+/**
+ * Marca de versión de la imagen de un vale.
+ *
+ * La imagen se cachea un día —la piden WhatsApp y el navegador, y regenerarla
+ * en cada vista sale caro— pero su contenido sí cambia: la tienda sube un
+ * logotipo, o se le corrige el nombre. Sin esto, la URL era la misma y todo
+ * el mundo seguía viendo la versión vieja hasta el día siguiente.
+ *
+ * Se pasan todas las marcas de tiempo que alteran el aspecto del vale una vez
+ * emitido y se queda con la más reciente. Hoy son dos: cuándo cambió la
+ * tienda —renombrarla cambia la firma cuando no hay logotipo— y cuándo
+ * cambió su logotipo. Con varias, ninguna se olvida al añadir la siguiente,
+ * y una que falte no rompe nada: simplemente no cuenta.
+ */
+export function versionImagen(
+  ...marcas: (string | null | undefined)[]
+): string {
+  const reciente = marcas.reduce<number>((mayor, m) => {
+    const t = m ? Date.parse(m) : NaN;
+    return Number.isFinite(t) && t > mayor ? t : mayor;
+  }, 0);
+
+  return reciente > 0 ? String(Math.floor(reciente / 1000)) : "0";
+}
+
 /** Imagen apaisada 1200×630 para la vista previa del enlace. */
-export function urlImagenVale(token: string, base = baseSitio()) {
-  return new URL(
-    `/api/v/${encodeURIComponent(token)}/imagen`,
-    base,
-  ).toString();
+export function urlImagenVale(
+  token: string,
+  version?: string | null,
+  base = baseSitio(),
+) {
+  const u = new URL(`/api/v/${encodeURIComponent(token)}/imagen`, base);
+  if (version) u.searchParams.set("v", version);
+  return u.toString();
 }
 
 /**
  * Imagen vertical 800×1200: la que se descarga o se comparte desde el panel.
  * Ruta relativa a propósito, para que funcione desde cualquier dominio.
  */
-export function urlTarjetaVale(token: string, descargar = false) {
+export function urlTarjetaVale(
+  token: string,
+  descargar = false,
+  version?: string | null,
+) {
   const t = encodeURIComponent(token);
-  return `/api/v/${t}/imagen?formato=tarjeta${descargar ? "&descargar=1" : ""}`;
+  const extra = [
+    "formato=tarjeta",
+    descargar ? "descargar=1" : null,
+    // Ver `versionImagen`: sin esto la tarjeta se queda cacheada un día con
+    // el logotipo —o el nombre— que tenía la tienda antes.
+    version ? `v=${encodeURIComponent(version)}` : null,
+  ]
+    .filter(Boolean)
+    .join("&");
+  return `/api/v/${t}/imagen?${extra}`;
 }
 
 /**

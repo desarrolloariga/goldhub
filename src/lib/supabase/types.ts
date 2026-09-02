@@ -259,6 +259,8 @@ export type Database = {
           /** Del bucket de logotipos. Nulo = la tienda no subió ninguno. */
           tienda_logo_ruta: string | null;
           tienda_logo_actualizado_en: string | null;
+          /** Último cambio de la tienda: logotipo, nombre, lo que sea. */
+          tienda_actualizada_en: string;
 
           total_redenciones: number;
           /** Compras que llegaron por difusión, no del propio portador. */

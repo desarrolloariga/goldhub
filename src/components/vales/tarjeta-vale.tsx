@@ -47,6 +47,12 @@ export type DatosTarjeta = {
   tienda: string;
   /** URL de su logotipo. Nula = firma con el nombre en tipografía. */
   logo: string | null;
+  /**
+   * Marca de versión de la imagen. Cambia cuando cambia el aspecto del vale
+   * —logotipo nuevo, tienda renombrada— y con ella la URL, que es lo único
+   * que hace fallar la caché de un día del navegador y de WhatsApp.
+   */
+  version: string;
   /** Ya formateada. */
   vigencia: string;
 };
@@ -96,7 +102,9 @@ export function TarjetaVale({
     setOcupado("imagen");
 
     try {
-      const respuesta = await fetch(urlTarjetaVale(vale.token));
+      const respuesta = await fetch(
+        urlTarjetaVale(vale.token, false, vale.version),
+      );
       if (!respuesta.ok) throw new Error("No se pudo generar la imagen.");
       const blob = await respuesta.blob();
       const archivo = new File([blob], nombre, { type: "image/png" });
@@ -115,7 +123,7 @@ export function TarjetaVale({
     } catch (e) {
       // Cancelar la hoja de compartir lanza AbortError: no es un fallo.
       if ((e as Error)?.name !== "AbortError") {
-        window.open(urlTarjetaVale(vale.token, true), "_blank");
+        window.open(urlTarjetaVale(vale.token, true, vale.version), "_blank");
       }
     } finally {
       setOcupado(null);

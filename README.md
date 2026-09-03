@@ -63,6 +63,19 @@ npm run dev                     # http://localhost:3003
 El puerto es el **3003** y no el 3002, que es el de ARIGA: así los dos
 proyectos pueden correr a la vez en la misma máquina.
 
+### Cambios sobre una base que ya está publicada
+
+`aplicar.sql` reconstruye el esquema entero, y eso sirve para montar una base
+nueva. Para la que ya está en producción se usa `supabase/cambios/`: un
+archivo por cambio, con lo mínimo, que se revisa de un vistazo en vez de
+releer dos mil líneas para convencerse de que no rompen nada.
+
+El cambio se escribe igual en `supabase/migrations/` —que sigue siendo la
+fuente y lo que reconstruye desde cero— y se copia lo justo al archivo suelto.
+`npm run test:esquema` aplica los dos: las migraciones completas, y luego cada
+archivo de `cambios/` dos veces seguidas sobre el esquema ya montado, que es
+donde se vería que no es idempotente.
+
 Comprobaciones rápidas:
 
 ```bash

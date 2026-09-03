@@ -60,6 +60,7 @@ export default async function PaginaMiTienda() {
           <DatosTienda
             direccion={tienda.direccion}
             telefono={tienda.telefono}
+            asesora={tienda.asesora}
             autorregistro={tienda.autorregistro}
           />
         </Tarjeta>

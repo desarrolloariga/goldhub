@@ -518,6 +518,64 @@ afirmar(
   );
 }
 
+// La carga de asesoras solo rellena lo que está vacío: si alguien corrigió
+// una desde el panel, reaplicar la migración no puede devolverla a la lista.
+{
+  await db.exec(`
+    update smartvalehubgold.tiendas
+       set asesora = 'CORREGIDA A MANO'
+     where prefijo = 'MZT'`);
+  await db.exec(`
+    insert into smartvalehubgold.tiendas (nombre, prefijo, asesora)
+    values ('Ariga Joyería', 'ARI', null)
+    on conflict do nothing`);
+
+  const fallo = await aplicarMigraciones();
+  const fila = (
+    await db.query(`
+      select
+        (select asesora from smartvalehubgold.tiendas where prefijo = 'MZT') a_mano,
+        (select asesora from smartvalehubgold.tiendas where prefijo = 'ARI') sembrada`)
+  ).rows[0];
+
+  afirmar(
+    "la asesora se siembra donde falta y respeta la corregida a mano",
+    fallo === null
+      && fila.a_mano === "CORREGIDA A MANO"
+      && fila.sembrada === "RUTH ABIGAIL TUM AGUILAR",
+    `${fila.a_mano} / ${fila.sembrada}`,
+  );
+}
+
+// ── Cambios incrementales ────────────────────────────────────────────────
+//
+// Los archivos de supabase/cambios/ son lo que se pega en la base publicada.
+// Se comprueban aquí, contra el esquema ya montado y con datos dentro, que es
+// exactamente la situación en la que se van a aplicar. Y dos veces: pegar el
+// mismo archivo por segunda vez no puede fallar ni deshacer nada.
+console.log("\nCambios incrementales");
+
+{
+  const dirCambios = path.join(process.cwd(), "supabase", "cambios");
+  const sueltos = readdirSync(dirCambios)
+    .filter((f) => f.endsWith(".sql"))
+    .sort();
+
+  for (const f of sueltos) {
+    const sql = readFileSync(path.join(dirCambios, f), "utf8");
+    let fallo = null;
+    for (const vuelta of [1, 2]) {
+      try {
+        await db.exec(sql);
+      } catch (e) {
+        fallo = `vuelta ${vuelta}: ${e.message}`;
+        break;
+      }
+    }
+    afirmar(`${f} entra dos veces seguidas`, fallo === null, fallo ?? "");
+  }
+}
+
 // ── Cierre ───────────────────────────────────────────────────────────────
 console.log(`\n${ok} correctas, ${mal} fallo(s).\n`);
 await db.close();

@@ -19,10 +19,12 @@ import {
 export function DatosTienda({
   direccion,
   telefono,
+  asesora,
   autorregistro,
 }: {
   direccion: string | null;
   telefono: string | null;
+  asesora: string | null;
   autorregistro: boolean;
 }) {
   const [estado, accion, guardando] = useActionState<EstadoMiTienda, FormData>(
@@ -47,6 +49,15 @@ export function DatosTienda({
         placeholder="+502 5555-1234"
         defaultValue={telefono ?? ""}
         ayuda="Sale impreso en tus vales: es el número al que el cliente le escribe a su asesora. Déjalo vacío para quitarlo."
+      />
+      {/* Dato interno: al revés que el teléfono, este no se imprime en el
+          vale. Se dice para que nadie lo rellene creyendo que sí. */}
+      <Campo
+        etiqueta="ASESORA"
+        name="asesora"
+        placeholder="Nombre y apellidos"
+        defaultValue={asesora ?? ""}
+        ayuda="Quién atiende la tienda. No sale en el vale: se usa para los reportes."
       />
 
       <label className="border-ink/10 rounded-field flex cursor-pointer items-start gap-3 border px-4 py-3">

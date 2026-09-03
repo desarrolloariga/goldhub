@@ -37,6 +37,8 @@ export type Database = {
           logo_actualizado_en: string | null;
           direccion: string | null;
           telefono: string | null;
+          /** Quién atiende la tienda. Dato interno: no sale en el vale. */
+          asesora: string | null;
           /** QR fijo de la tienda: el que el cliente escanea para registrarse. */
           token: string;
           autorregistro: boolean;
@@ -49,6 +51,7 @@ export type Database = {
           prefijo: string;
           direccion?: string | null;
           telefono?: string | null;
+          asesora?: string | null;
           autorregistro?: boolean;
           activo?: boolean;
         };
@@ -57,6 +60,7 @@ export type Database = {
           prefijo?: string;
           direccion?: string | null;
           telefono?: string | null;
+          asesora?: string | null;
           logo_ruta?: string | null;
           logo_actualizado_en?: string | null;
           autorregistro?: boolean;
@@ -617,6 +621,8 @@ export type Database = {
         Returns: {
           tienda_id: number;
           tienda: string;
+          /** Quién atiende esa tienda. Nula si no tiene asignada. */
+          asesora: string | null;
           tickets: number;
           venta: number;
           ticket_promedio: number | null;

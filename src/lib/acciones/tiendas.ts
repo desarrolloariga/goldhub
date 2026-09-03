@@ -222,6 +222,54 @@ export async function renombrarTienda(
     : { ok: `Ahora se llama «${nombre}».` };
 }
 
+export type EstadoAsesora = { error?: string; ok?: string } | null;
+
+/**
+ * Pone o cambia quién atiende una tienda, desde el panel del administrador.
+ *
+ * Dato interno: no se imprime en el vale. Sirve para saber a quién
+ * corresponde cada punto y para leer el reporte de ventas con nombre.
+ *
+ * Vacío guarda nulo, que es como se deja una tienda sin asignar.
+ */
+export async function guardarAsesoraTienda(
+  _previo: EstadoAsesora,
+  formData: FormData,
+): Promise<EstadoAsesora> {
+  await requerirAdmin();
+
+  const id = Number(formData.get("id"));
+  if (!Number.isInteger(id) || id <= 0) return { error: "Tienda inválida." };
+
+  const r = z
+    .string()
+    .trim()
+    .max(120, "El nombre es demasiado largo.")
+    .transform((v) => (v === "" ? null : v))
+    .safeParse(formData.get("asesora") ?? "");
+
+  if (!r.success) {
+    return { error: r.error.issues[0]?.message ?? "Nombre inválido." };
+  }
+  const asesora = r.data;
+
+  const { data, error } = await db()
+    .from("tiendas")
+    .update({ asesora })
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { error: `No se pudo guardar: ${error.message}` };
+  if (!data) return { error: "Esa tienda ya no existe." };
+
+  revalidatePath("/panel/tiendas");
+  revalidatePath("/panel/mi-tienda");
+  revalidatePath("/panel/reportes");
+
+  return { ok: asesora ? "Asesora guardada." : "Asesora quitada." };
+}
+
 export type EstadoTelefono = { error?: string; ok?: string } | null;
 
 /**
@@ -407,6 +455,11 @@ const EsquemaDatos = z.object({
     .trim()
     .max(40)
     .transform((v) => (v === "" ? null : v)),
+  asesora: z
+    .string()
+    .trim()
+    .max(120)
+    .transform((v) => (v === "" ? null : v)),
   autorregistro: z.boolean(),
 });
 
@@ -424,6 +477,7 @@ export async function guardarMiTienda(
   const r = EsquemaDatos.safeParse({
     direccion: formData.get("direccion") ?? "",
     telefono: formData.get("telefono") ?? "",
+    asesora: formData.get("asesora") ?? "",
     autorregistro: formData.get("autorregistro") === "on",
   });
   if (!r.success) return { error: r.error.issues[0]?.message ?? "Datos inválidos." };

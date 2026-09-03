@@ -543,6 +543,11 @@ create or replace function smartvalehubgold.fn_ventas_por_tienda(
 returns table (
   tienda_id       bigint,
   tienda          text,
+  -- Quién atiende esa tienda. No se agrupa por ella: hay una asesora por
+  -- tienda, así que agrupar daría exactamente las mismas filas con otro
+  -- encabezado. Va como columna al lado, que es lo que hace falta para
+  -- leer el desempeño con nombre y apellido.
+  asesora         text,
   tickets         integer,
   venta           numeric,
   ticket_promedio numeric
@@ -554,15 +559,17 @@ as $$
   select
     v.tienda_id,
     v.tienda,
+    t.asesora,
     count(*)::integer,
     coalesce(sum(v.monto_oro), 0),
     round(coalesce(sum(v.monto_oro), 0) / nullif(count(*), 0), 2)
   from smartvalehubgold.vw_ventas v
+  join smartvalehubgold.tiendas t on t.id = v.tienda_id
   where (p_desde     is null or v.dia >= p_desde)
     and (p_hasta     is null or v.dia <= p_hasta)
     and (p_tienda_id is null or v.tienda_id = p_tienda_id)
-  group by v.tienda_id, v.tienda
-  order by 4 desc;
+  group by v.tienda_id, v.tienda, t.asesora
+  order by 5 desc;
 $$;
 
 

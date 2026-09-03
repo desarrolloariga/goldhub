@@ -15,6 +15,7 @@ import { FormularioTienda } from "./formulario";
 import { LogoTienda } from "./logo-tienda";
 import { NombreTienda } from "./nombre-tienda";
 import { QrTienda } from "./qr-tienda";
+import { AsesoraTienda } from "./asesora-tienda";
 import { TelefonoTienda } from "./telefono-tienda";
 
 export const metadata: Metadata = { title: "Tiendas" };
@@ -96,11 +97,18 @@ export default async function PaginaTiendas() {
                         y se pone desde aquí porque el administrador no tiene
                         «Mi tienda»: esa pantalla exige una tienda en la
                         sesión y la suya no la tiene. */}
-                    <TelefonoTienda
-                      id={t.id}
-                      nombre={t.nombre}
-                      telefono={t.telefono}
-                    />
+                    <span className="flex flex-wrap items-center gap-2">
+                      <TelefonoTienda
+                        id={t.id}
+                        nombre={t.nombre}
+                        telefono={t.telefono}
+                      />
+                      <AsesoraTienda
+                        id={t.id}
+                        nombre={t.nombre}
+                        asesora={t.asesora}
+                      />
+                    </span>
                   </span>
 
                   <span className="flex flex-wrap items-center gap-2">

@@ -287,9 +287,17 @@ export default async function PaginaVentas({
             <Barras
               datos={porTienda.map((t) => ({
                 etiqueta: t.tienda,
-                detalle: `${t.tickets} ${t.tickets === 1 ? "compra" : "compras"} · ticket ${
-                  t.ticket_promedio ? monedaCorta(Number(t.ticket_promedio)) : "—"
-                }`,
+                // La asesora abre el detalle: leer el desempeño con nombre y
+                // apellido es la mitad de para qué se mira esta tabla. Si la
+                // tienda no tiene asignada, la línea sigue sin ella en vez de
+                // dejar un hueco.
+                detalle: [
+                  t.asesora,
+                  `${t.tickets} ${t.tickets === 1 ? "compra" : "compras"}`,
+                  `ticket ${t.ticket_promedio ? monedaCorta(Number(t.ticket_promedio)) : "—"}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · "),
                 valor: Number(t.venta),
                 valorTexto: monedaCorta(Number(t.venta)),
               }))}

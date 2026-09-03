@@ -40,6 +40,8 @@ export type VentaDia = {
 export type VentaPorTienda = {
   tienda_id: number;
   tienda: string;
+  /** Quién atiende esa tienda. Nula si no tiene asignada. */
+  asesora: string | null;
   tickets: number;
   venta: number;
   ticket_promedio: number | null;

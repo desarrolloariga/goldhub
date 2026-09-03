@@ -84,6 +84,10 @@ create table if not exists smartvalehubgold.tiendas (
 
   direccion           text,
   telefono            text,
+  -- Quién atiende la tienda. Es dato interno —no sale impreso en el vale—:
+  -- sirve para saber a quién corresponde cada punto y para desglosar las
+  -- ventas por asesora en los reportes.
+  asesora             text,
 
   -- QR fijo de la tienda: el que el cliente escanea para registrarse solo.
   token               text not null default smartvalehubgold.fn_token_publico(),
@@ -99,6 +103,41 @@ create table if not exists smartvalehubgold.tiendas (
   constraint tiendas_nombre_no_vacio check (btrim(nombre) <> ''),
   constraint tiendas_correlativo_no_negativo check (correlativo >= 0)
 );
+
+-- La asesora llegó después de que la tabla estuviera publicada, y
+-- `create table if not exists` no toca una tabla que ya existe.
+alter table smartvalehubgold.tiendas
+  add column if not exists asesora text;
+
+-- Quién atiende cada tienda. Va por prefijo y no por nombre porque el nombre
+-- se puede corregir desde el panel —y hay dos tiendas que se llaman casi
+-- igual, ARIGA JOYERÍA y JOYERIA ARIGA—, mientras que el prefijo está dentro
+-- de los códigos ya entregados y no cambia nunca.
+--
+-- Solo rellena las que estén vacías: si alguien ya la corrigió desde el
+-- panel, reaplicar esto no debe devolverla al valor de esta lista.
+update smartvalehubgold.tiendas t
+   set asesora = v.asesora
+  from (values
+    ('ARI', 'RUTH ABIGAIL TUM AGUILAR'),
+    ('INV', 'MEREDITH REBECA TUM AGUILAR'),
+    ('TES', 'LOREINE YESSENIA CASTILLO CHAMALÉ'),
+    ('GLA', 'KEYLA ABIGAIL AYFAN GARCIA'),
+    ('LIN', 'MIRNA LIZETH JUAREZ MARROQUIN'),
+    ('ELE', 'GLENDY AMARILIS CASTRO DE LEON'),
+    ('RAY', 'KENIA ELICE LEWIS GARCIA'),
+    ('COR', 'EMILY ADRIANA VASQUEZ ALARCON'),
+    ('LUP', 'VASTY EUNICE SOTO VICENTE'),
+    ('LDO', 'MARY EVELIN YESENIA TOJ XIRUM'),
+    ('CRZ', 'LINDA MERELIN YUCUTE VELASCO'),
+    ('LIR', 'GREGORIA DEL ROSARIO SOLIS CALDERON'),
+    ('ANA', 'ADRIANA ALVAREZ'),
+    ('STE', 'ABIGAIL PANIAGUA'),
+    ('JA',  'ASHLEY MORALES'),
+    ('LUJ', 'DAYANA ORDOÑEZ')
+  ) as v(prefijo, asesora)
+ where t.prefijo = v.prefijo
+   and t.asesora is null;
 
 create unique index if not exists tiendas_prefijo_idx
   on smartvalehubgold.tiendas (prefijo);

@@ -93,6 +93,40 @@ as $$
 $$;
 
 
+-- El porcentaje que le toca a un vale según su tipo y cómo se pague.
+--
+-- Existe para que la caja y las pantallas no puedan discrepar: si cada una
+-- resolviera la regla por su cuenta, un vale podría anunciar un descuento y
+-- la caja aplicar otro. Aquí se decide una sola vez.
+--
+-- El A3 lleva el suyo porque lo emite el propio visitante escaneando el QR
+-- del mostrador, sin que nadie de la tienda lo invite: es tráfico frío y
+-- descuenta menos que un vale entregado a un cliente de la casa.
+create or replace function smartvalehubgold.fn_descuento_pct(
+  p_tipo       text,
+  p_forma_pago text
+)
+returns numeric
+language sql
+stable
+set search_path = ''
+as $$
+  select smartvalehubgold.fn_config(
+    case
+      when lower(btrim(p_forma_pago)) = 'visa' then
+        case when upper(btrim(p_tipo)) = 'A3'
+             then 'descuento_visa_a3' else 'descuento_visa' end
+      else
+        case when upper(btrim(p_tipo)) = 'A3'
+             then 'descuento_transferencia_a3' else 'descuento_transferencia' end
+    end,
+    0);
+$$;
+
+comment on function smartvalehubgold.fn_descuento_pct is
+  'Porcentaje que aplica a un vale según su tipo y la forma de pago. Fuente única para la caja y para lo que se anuncia.';
+
+
 -- `fn_config` devuelve numeric y la fecha de vigencia es texto. Van separadas
 -- para no tener que decidir el tipo en cada llamada.
 create or replace function smartvalehubgold.fn_config_texto(
@@ -736,9 +770,7 @@ begin
       using errcode = 'SV006';
   end if;
 
-  v_pct := smartvalehubgold.fn_config(
-    case v_forma when 'visa' then 'descuento_visa'
-                 else 'descuento_transferencia' end, 0);
+  v_pct := smartvalehubgold.fn_descuento_pct(v_vale.tipo::text, v_forma);
 
   v_descuento := round(p_monto_oro * v_pct / 100, 2);
 

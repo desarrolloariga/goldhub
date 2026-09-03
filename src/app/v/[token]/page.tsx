@@ -6,7 +6,7 @@ import { valePorToken } from "@/lib/datos/vales";
 import { urlImagenVale, urlPublicaVale, versionImagen } from "@/lib/compartir";
 import { fecha } from "@/lib/format";
 import { urlLogo } from "@/lib/logos";
-import { tarifaVigente } from "@/lib/datos/configuracion";
+import { tarifaDeTipo, tarifaVigente } from "@/lib/datos/configuracion";
 
 /**
  * Cara pública del vale: lo que abre quien recibe el enlace por WhatsApp.
@@ -38,7 +38,8 @@ export async function generateMetadata({
    * era el sitio donde peor sentaba quedarse con el 15%: la imagen ya decía
    * 20 y 25, y el renglón de debajo la contradecía.
    */
-  const titulo = `${tarifa.visa}% visa · ${tarifa.transferencia}% transferencia · ${vale.tienda}`;
+  const pct = tarifaDeTipo(tarifa, vale.tipo);
+  const titulo = `${pct.visa}% visa · ${pct.transferencia}% transferencia · ${vale.tienda}`;
   const descripcion = `Vale ${vale.codigo}, vigente hasta el ${fecha(vale.fecha_vencimiento)}. Preséntalo en cualquier sucursal.`;
 
   return {
@@ -96,8 +97,7 @@ export default async function PaginaPublicaVale({
             token: vale.token,
             tipo: vale.tipo,
             estado: vale.estado,
-            visa: tarifa.visa,
-            transferencia: tarifa.transferencia,
+            ...tarifaDeTipo(tarifa, vale.tipo),
             tienda: vale.tienda,
             telefonoTienda: vale.tienda_telefono,
             logo: urlLogo(vale),

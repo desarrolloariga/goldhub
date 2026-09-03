@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { Marca } from "@/components/marca/marca";
 import { Tarifa } from "@/components/vales/tarifas";
 import { tiendaPorToken } from "@/lib/datos/tiendas";
-import { tarifaVigente } from "@/lib/datos/configuracion";
+import { tarifaDeTipo, tarifaVigente } from "@/lib/datos/configuracion";
 
 import { FormularioRegistro } from "./formulario";
 
@@ -49,9 +49,11 @@ export default async function PaginaAutorregistro({
           {tienda.autorregistro ? (
             <>
               <div className="flex flex-col items-center gap-2">
+                {/* Los del A3: es lo único que sale de este QR, y prometer
+                    aquí los generales sería ofrecer un descuento que el vale
+                    no va a cumplir. */}
                 <Tarifa
-                  visa={tarifa.visa}
-                  transferencia={tarifa.transferencia}
+                  {...tarifaDeTipo(tarifa, "A3")}
                   tamano="grande"
                   className="text-taupe-light"
                 />

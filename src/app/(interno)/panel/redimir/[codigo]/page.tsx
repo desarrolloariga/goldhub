@@ -6,7 +6,7 @@ import { Tarjeta } from "@/components/ui/tarjeta";
 import { ChipTipo } from "@/components/vales/chip-tipo";
 import { requerirSesion } from "@/lib/auth/guardas";
 import { validarVale } from "@/lib/datos/vales";
-import { tarifaVigente } from "@/lib/datos/configuracion";
+import { tarifaDeTipo, tarifaVigente } from "@/lib/datos/configuracion";
 import { normalizarCodigo } from "@/lib/codigo-vale";
 import { fecha } from "@/lib/format";
 import { ETIQUETA_SEGMENTO, ETIQUETA_TIPO } from "@/lib/supabase/types";
@@ -70,6 +70,12 @@ export default async function PaginaValidacion({
     );
   }
 
+  /*
+   * Los que le tocan a ESTE vale. Un A3 descuenta menos, y la caja tiene que
+   * enseñar y cobrar lo mismo que el cliente lleva escrito en su vale.
+   */
+  const pct = tarifaDeTipo(tarifa, vale.tipo);
+
   const ficha = (
     <Tarjeta
       className={`flex flex-col gap-5 p-6 ${vale.redimible ? "" : "border-clay/30"}`}
@@ -90,14 +96,14 @@ export default async function PaginaValidacion({
             <span className="flex items-baseline gap-[10px]">
               <span className="flex items-baseline gap-[4px]">
                 <span className="font-display text-taupe-deep text-[26px] leading-none">
-                  {tarifa.visa}%
+                  {pct.visa}%
                 </span>
                 <span className="text-ink/55 text-[12px]">visa</span>
               </span>
               <span className="text-ink/25 text-[12px]">·</span>
               <span className="flex items-baseline gap-[4px]">
                 <span className="font-display text-taupe-deep text-[26px] leading-none">
-                  {tarifa.transferencia}%
+                  {pct.transferencia}%
                 </span>
                 <span className="text-ink/55 text-[12px]">transferencia</span>
               </span>
@@ -190,8 +196,8 @@ export default async function PaginaValidacion({
             <FormularioRedencion
               codigo={vale.codigo}
               portador={vale.portador}
-              visa={tarifa.visa}
-              transferencia={tarifa.transferencia}
+              visa={pct.visa}
+              transferencia={pct.transferencia}
             />
           </Tarjeta>
         ) : (

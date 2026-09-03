@@ -14,7 +14,7 @@ import { redencionesDeVale } from "@/lib/datos/redenciones";
 import { valePorCodigo } from "@/lib/datos/vales";
 import { fecha, fechaHora, moneda } from "@/lib/format";
 import { versionImagen } from "@/lib/compartir";
-import { tarifaVigente } from "@/lib/datos/configuracion";
+import { tarifaDeTipo, tarifaVigente } from "@/lib/datos/configuracion";
 import { urlLogo } from "@/lib/logos";
 import { ETIQUETA_SEGMENTO, ETIQUETA_TIPO } from "@/lib/supabase/types";
 
@@ -146,8 +146,7 @@ export default async function PaginaVale({
             token: vale.token,
             tipo: vale.tipo,
             estado: vale.estado,
-            visa: tarifa.visa,
-            transferencia: tarifa.transferencia,
+            ...tarifaDeTipo(tarifa, vale.tipo),
             tienda: vale.tienda,
             telefonoTienda: vale.tienda_telefono,
             logo: urlLogo(vale),

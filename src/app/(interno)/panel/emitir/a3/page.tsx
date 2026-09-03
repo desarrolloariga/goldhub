@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 import { Tarjeta } from "@/components/ui/tarjeta";
 import { requerirSesion } from "@/lib/auth/guardas";
-import { tarifaVigente } from "@/lib/datos/configuracion";
+import { tarifaDeTipo, tarifaVigente } from "@/lib/datos/configuracion";
 import { listarTiendas } from "@/lib/datos/tiendas";
 import { urlAutorregistro } from "@/lib/compartir";
 import { DESCRIPCION_TIPO, ETIQUETA_TIPO } from "@/lib/supabase/types";
@@ -90,8 +90,7 @@ export default async function PaginaEmitirA3({
               <EnlacePublico
                 tienda={tienda.nombre}
                 url={urlAutorregistro(tienda.token)}
-                visa={tarifa.visa}
-                transferencia={tarifa.transferencia}
+                {...tarifaDeTipo(tarifa, "A3")}
               />
             ) : (
               <p className="border-clay/25 bg-clay/6 text-clay rounded-field m-0 border px-3 py-[10px] text-[12px] leading-relaxed">

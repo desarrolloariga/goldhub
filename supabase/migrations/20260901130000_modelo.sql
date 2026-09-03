@@ -458,7 +458,14 @@ values
   ('descuento_visa', '20', 'numero', 'vales',
    'Porcentaje por pago con visa. Se anuncia en el vale; no lo aplica la caja.'),
   ('descuento_transferencia', '25', 'numero', 'vales',
-   'Porcentaje por pago con transferencia. Se anuncia en el vale; no lo aplica la caja.')
+   'Porcentaje por pago con transferencia. Se anuncia en el vale; no lo aplica la caja.'),
+  -- El A3 lo emite el propio visitante escaneando el QR del mostrador, sin
+  -- que nadie de la tienda lo invite: es tráfico frío, y lleva menos
+  -- descuento que un vale entregado a un cliente de la casa.
+  ('descuento_visa_a3', '15', 'numero', 'vales',
+   'Porcentaje por pago con visa en los vales A3, que se registran solos desde el QR.'),
+  ('descuento_transferencia_a3', '20', 'numero', 'vales',
+   'Porcentaje por pago con transferencia en los vales A3.')
 on conflict (clave) do nothing;
 
 -- La vigencia pasó de contarse en días a contarse en meses: «vence el 2 de

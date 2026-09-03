@@ -297,6 +297,17 @@ await rechaza("un vale inexistente no se redime", "SV002",
   `select smartvalehubgold.fn_registrar_redencion('NADA-000001',$1,'Ana','50255512345',null,100,null,null,'visa')`,
   [u1.id]);
 
+// El A3 descuenta menos: lo emite el propio visitante desde el QR, sin que
+// nadie de la tienda lo invite. 1000 al 15% con visa son 150, no 200.
+{
+  const r = await uno(
+    `select * from smartvalehubgold.fn_registrar_redencion($1,$2,'Visitante Frío','50255500001',null,1000,null,null,'visa')`,
+    [a3.codigo, u1.id]);
+  afirmar("un vale A3 descuenta con su propia tarifa",
+    Number(r.descuento_aplicado) === 150 && Number(r.descuento_pct) === 15,
+    `${r.descuento_aplicado} / ${r.descuento_pct}`);
+}
+
 // Sin forma de pago no hay cálculo posible: el porcentaje sale de ella.
 await rechaza("una compra sin forma de pago no se registra", "SV006",
   `select smartvalehubgold.fn_registrar_redencion($1,$2,'Ana','50255512345',null,100)`,
@@ -393,7 +404,7 @@ afirmar("y sabe si tiene logotipo", desemp.tiene_logo === false);
 
 const ventas = await uno(`select * from smartvalehubgold.fn_ventas_resumen()`);
 afirmar("el tablero de ventas suma solo oro",
-  Number(ventas.venta) > 0 && ventas.tickets === 5, `tickets ${ventas.tickets}`);
+  Number(ventas.venta) > 0 && ventas.tickets === 6, `tickets ${ventas.tickets}`);
 
 const porTienda = (await db.query(`select * from smartvalehubgold.fn_ventas_por_tienda()`)).rows;
 afirmar("y reparte por tienda de la compra", porTienda.length === 1, `${porTienda.length} filas`);

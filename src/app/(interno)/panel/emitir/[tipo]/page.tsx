@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 import { Tarjeta } from "@/components/ui/tarjeta";
 import { requerirSesion } from "@/lib/auth/guardas";
-import { tarifaVigente } from "@/lib/datos/configuracion";
+import { tarifaDeTipo, tarifaVigente } from "@/lib/datos/configuracion";
 import { listarTiendas } from "@/lib/datos/tiendas";
 import { valePorCodigo } from "@/lib/datos/vales";
 import {
@@ -92,7 +92,7 @@ export default async function PaginaFormulario({
 
         <FormularioEmision
           tipo={tipo}
-          tarifa={tarifa}
+          tarifa={tarifaDeTipo(tarifa, tipo)}
           tiendas={tiendas.map((t) => ({ id: t.id, nombre: t.nombre }))}
           prefijado={prefijado}
         />

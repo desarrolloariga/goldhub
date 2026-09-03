@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { valePorToken } from "@/lib/datos/vales";
 import { qrDataUrl } from "@/lib/qr";
-import { tarifaVigente } from "@/lib/datos/configuracion";
+import { tarifaDeTipo, tarifaVigente } from "@/lib/datos/configuracion";
 import { urlPublicaVale } from "@/lib/compartir";
 import { fecha } from "@/lib/format";
 import { logoEmpotrado } from "@/lib/logos";
@@ -55,8 +55,7 @@ export async function GET(
     portador: vale.portador,
     tipoEtiqueta: ETIQUETA_TIPO[vale.tipo],
     estado: vale.estado,
-    visa: tarifa.visa,
-    transferencia: tarifa.transferencia,
+    ...tarifaDeTipo(tarifa, vale.tipo),
     vigencia: fecha(vale.fecha_vencimiento),
     tienda: vale.tienda,
     telefono: vale.tienda_telefono,

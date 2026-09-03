@@ -100,7 +100,8 @@ export default async function PaginaEmitir() {
 
               <div className="border-ink/8 flex items-center justify-between border-t pt-3">
                 <Tarifa
-                  oro={tarifa.oro}
+                  visa={tarifa.visa}
+                  transferencia={tarifa.transferencia}
                   tamano="compacto"
                   className="text-ink/40"
                 />

@@ -34,7 +34,7 @@ export function FormularioEmision({
 }: {
   tipo: TipoVale;
   /** La misma para las cuatro puertas: el tipo dice de dónde viene, no cuánto. */
-  tarifa: { oro: number };
+  tarifa: { visa: number; transferencia: number };
   /**
    * Solo llega poblada para el administrador, que no tiene tienda propia y
    * tiene que decir en cuál emite. Una cuenta de tienda emite en la suya y
@@ -57,7 +57,7 @@ export function FormularioEmision({
 
       {/* La oferta, a la vista antes de capturar nada */}
       <div className="border-taupe/30 bg-taupe/6 rounded-card text-taupe-deep flex items-center justify-between gap-4 border px-5 py-4">
-        <Tarifa oro={tarifa.oro} />
+        <Tarifa visa={tarifa.visa} transferencia={tarifa.transferencia} />
         <span className="text-ink/45 max-w-[130px] text-right text-[11px] leading-relaxed">
           Descuento de todos los vales
         </span>

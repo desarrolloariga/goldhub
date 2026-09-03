@@ -42,7 +42,20 @@ export default async function PaginaRedencion({
     ["VALE", `${vale.tipo} · ${redencion.codigo}`],
     ["PORTADOR DEL VALE", vale.portador],
     ["VENCIMIENTO DEL VALE", fecha(vale.fecha_vencimiento)],
-    ["DESCUENTO DEL VALE", `${vale.descuento_oro_pct}% en oro`],
+    /*
+     * El de ESTA compra y no el del vale: desde que el descuento depende de
+     * la forma de pago, el porcentaje del vale ya no es lo que se cobró.
+     * Las compras anteriores al cambio no tienen forma de pago guardada y
+     * siguen enseñando el suyo, que es lo que se les aplicó de verdad.
+     */
+    redencion.descuento_pct !== null
+      ? [
+          "DESCUENTO APLICADO",
+          `${redencion.descuento_pct}%${
+            redencion.forma_pago ? ` · ${redencion.forma_pago}` : ""
+          }`,
+        ]
+      : ["DESCUENTO DEL VALE", `${vale.descuento_oro_pct}% en oro`],
   ];
 
   return (

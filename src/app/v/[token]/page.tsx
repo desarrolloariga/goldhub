@@ -24,11 +24,21 @@ export async function generateMetadata({
   params,
 }: PageProps<"/v/[token]">): Promise<Metadata> {
   const { token } = await params;
-  const vale = await valePorToken(decodeURIComponent(token));
+  const [vale, tarifa] = await Promise.all([
+    valePorToken(decodeURIComponent(token)),
+    tarifaVigente(),
+  ]);
 
   if (!vale) return { title: "Vale no encontrado" };
 
-  const titulo = `${Number(vale.descuento_oro_pct)}% de descuento en oro · ${vale.tienda}`;
+  /*
+   * Los dos porcentajes de la red, no el de oro que llevaba el vale.
+   *
+   * Esto es lo que WhatsApp enseña como título de la vista previa, así que
+   * era el sitio donde peor sentaba quedarse con el 15%: la imagen ya decía
+   * 20 y 25, y el renglón de debajo la contradecía.
+   */
+  const titulo = `${tarifa.visa}% visa · ${tarifa.transferencia}% transferencia · ${vale.tienda}`;
   const descripcion = `Vale ${vale.codigo}, vigente hasta el ${fecha(vale.fecha_vencimiento)}. Preséntalo en cualquier sucursal.`;
 
   return {

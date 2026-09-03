@@ -18,19 +18,27 @@ import { Check, Copy, MessageCircle, Printer } from "lucide-react";
 export function EnlacePublico({
   tienda,
   url,
-  tarifa,
+  visa,
+  transferencia,
 }: {
   tienda: string;
   url: string;
-  /** Porcentaje en oro, el único material. */
-  tarifa: number;
+  /** Los dos porcentajes de la red: el que aplica depende de cómo se pague. */
+  visa: number;
+  transferencia: number;
 }) {
   const [copiado, setCopiado] = useState(false);
 
   const mensaje = [
     "Te compartimos tu descuento en GOLD HUB.",
     "",
-    `${tarifa}% de descuento en oro`,
+    // Los dos, y sin el que se retire: un «0%» anunciado es peor que nada.
+    [
+      visa > 0 ? `${visa}% con visa` : null,
+      transferencia > 0 ? `${transferencia}% por transferencia` : null,
+    ]
+      .filter(Boolean)
+      .join(" · "),
     "",
     "Regístrate aquí y recibe tu vale al instante:",
     url,
@@ -68,23 +76,41 @@ export function EnlacePublico({
             style={{ backgroundColor: PALETA.acento }}
           />
 
-          {/* Una sola cifra: aquí solo se vende oro. Es la tarifa general,
-              la misma que traerá el vale cuando el cliente se registre:
-              prometer aquí otra cosa sería ofrecer un descuento que el vale
-              no va a cumplir. */}
-          <span className="flex flex-col items-center">
-            <span
-              className="font-display text-[46px] leading-none"
-              style={{ color: PALETA.tinta }}
-            >
-              {tarifa}%
-            </span>
-            <span
-              className="mt-[7px] ml-[0.22em] text-[9px] tracking-[0.22em]"
-              style={{ color: PALETA.gris }}
-            >
-              EN ORO
-            </span>
+          {/* Los dos porcentajes de la red, los mismos que traerá el vale
+              cuando el cliente se registre: prometer aquí otra cosa sería
+              ofrecer un descuento que el vale no va a cumplir. */}
+          <span className="flex items-center gap-4">
+            {(
+              [
+                [visa, "VISA"],
+                [transferencia, "TRANSFERENCIA"],
+              ] as const
+            )
+              .filter(([pct]) => pct > 0)
+              .map(([pct, rotulo], i) => (
+                <span key={rotulo} className="flex items-center gap-4">
+                  {i > 0 ? (
+                    <span
+                      className="h-[34px] w-px"
+                      style={{ backgroundColor: PALETA.divisor }}
+                    />
+                  ) : null}
+                  <span className="flex flex-col items-center">
+                    <span
+                      className="font-display text-[38px] leading-none"
+                      style={{ color: PALETA.tinta }}
+                    >
+                      {pct}%
+                    </span>
+                    <span
+                      className="mt-[7px] ml-[0.18em] text-[8.5px] tracking-[0.18em]"
+                      style={{ color: PALETA.gris }}
+                    >
+                      {rotulo}
+                    </span>
+                  </span>
+                </span>
+              ))}
           </span>
 
           {/* Grande a propósito: se escanea desde el teléfono de al lado */}

@@ -90,7 +90,8 @@ export default async function PaginaEmitirA3({
               <EnlacePublico
                 tienda={tienda.nombre}
                 url={urlAutorregistro(tienda.token)}
-                tarifa={tarifa.oro}
+                visa={tarifa.visa}
+                transferencia={tarifa.transferencia}
               />
             ) : (
               <p className="border-clay/25 bg-clay/6 text-clay rounded-field m-0 border px-3 py-[10px] text-[12px] leading-relaxed">

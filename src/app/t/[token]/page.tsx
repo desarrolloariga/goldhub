@@ -50,7 +50,8 @@ export default async function PaginaAutorregistro({
             <>
               <div className="flex flex-col items-center gap-2">
                 <Tarifa
-                  oro={tarifa.oro}
+                  visa={tarifa.visa}
+                  transferencia={tarifa.transferencia}
                   tamano="grande"
                   className="text-taupe-light"
                 />

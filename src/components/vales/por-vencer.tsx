@@ -88,8 +88,7 @@ export function PorVencer({
                   >
                     {v.codigo}
                   </Link>
-                  {" · "}
-                  {Number(v.descuento_oro_pct)}% · sin usar
+                  {" · sin usar"}
                   {mostrarEmisora ? ` · ${v.tienda}` : ""}
                 </span>
               </span>

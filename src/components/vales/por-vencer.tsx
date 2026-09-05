@@ -6,6 +6,7 @@ import { ChipTipo } from "@/components/vales/chip-tipo";
 import { enlaceWhatsApp, mensajeVale } from "@/lib/compartir";
 import { fecha } from "@/lib/format";
 import type { ValePorVencer } from "@/lib/supabase/types";
+import { tarifaDeTipo, type Tarifa } from "@/lib/datos/configuracion";
 
 /**
  * Vales a punto de vencer.
@@ -21,14 +22,16 @@ import type { ValePorVencer } from "@/lib/supabase/types";
  */
 export function PorVencer({
   vales,
-  visa,
-  transferencia,
+  tarifa,
   mostrarEmisora = false,
 }: {
   vales: ValePorVencer[];
-  /** Los dos porcentajes de la red, para el mensaje que se reenvía. */
-  visa: number;
-  transferencia: number;
+  /**
+   * La tarifa completa, no dos números ya resueltos: el mensaje que se
+   * reenvía tiene que llevar los porcentajes del vale en cuestión, y en esta
+   * lista conviven tipos distintos —un A3 descuenta menos que un A1—.
+   */
+  tarifa: Tarifa;
   /** El administrador ve de qué tienda es cada vale; la tienda no. */
   mostrarEmisora?: boolean;
 }) {
@@ -57,8 +60,7 @@ export function PorVencer({
             nombre: v.portador,
             codigo: v.codigo,
             token: v.token,
-            visa,
-            transferencia,
+            ...tarifaDeTipo(tarifa, v.tipo),
             vigencia: fecha(v.fecha_vencimiento),
           });
 

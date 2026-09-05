@@ -59,7 +59,8 @@ export function FormularioEmision({
       <div className="border-taupe/30 bg-taupe/6 rounded-card text-taupe-deep flex items-center justify-between gap-4 border px-5 py-4">
         <Tarifa visa={tarifa.visa} transferencia={tarifa.transferencia} />
         <span className="text-ink/45 max-w-[130px] text-right text-[11px] leading-relaxed">
-          Descuento de todos los vales
+          {/* Ya no es «de todos los vales»: el A3 lleva el suyo. */}
+          Descuento de un vale {tipo}
         </span>
       </div>
 

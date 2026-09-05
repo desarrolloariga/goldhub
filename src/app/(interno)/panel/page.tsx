@@ -74,8 +74,7 @@ export default async function PaginaPanel() {
       {/* Antes que las cifras: es lo único con fecha límite */}
       <PorVencer
         vales={porVencer}
-        visa={tarifa.visa}
-        transferencia={tarifa.transferencia}
+        tarifa={tarifa}
         mostrarEmisora={sesion.rol === "admin"}
       />
 

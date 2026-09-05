@@ -4,7 +4,7 @@ import { Building2, PhoneCall, Store, UserPlus } from "lucide-react";
 
 import { Tarifa } from "@/components/vales/tarifas";
 import { requerirSesion } from "@/lib/auth/guardas";
-import { tarifaVigente } from "@/lib/datos/configuracion";
+import { tarifaDeTipo, tarifaVigente } from "@/lib/datos/configuracion";
 
 export const metadata: Metadata = { title: "Emitir vale" };
 
@@ -99,9 +99,10 @@ export default async function PaginaEmitir() {
               </p>
 
               <div className="border-ink/8 flex items-center justify-between border-t pt-3">
+                {/* La de cada puerta, no la general: el A3 descuenta menos,
+                    y esta pantalla es donde se elige cuál emitir. */}
                 <Tarifa
-                  visa={tarifa.visa}
-                  transferencia={tarifa.transferencia}
+                  {...tarifaDeTipo(tarifa, tipo)}
                   tamano="compacto"
                   className="text-ink/40"
                 />

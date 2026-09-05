@@ -56,6 +56,17 @@ export default async function PaginaRedencion({
           }`,
         ]
       : ["DESCUENTO DEL VALE", `${vale.descuento_oro_pct}% en oro`],
+    // La cuenta completa, como en caja: el porcentaje de arriba dice cuánto
+    // se descontó, pero no cuánto pagó el cliente, que es lo que se busca al
+    // abrir una compra para revisarla.
+    ["COMPRA", moneda(Number(redencion.monto_oro))],
+    ["DESCUENTO", `− ${moneda(Number(redencion.descuento_aplicado))}`],
+    [
+      "SE COBRÓ",
+      moneda(
+        Number(redencion.monto_oro) - Number(redencion.descuento_aplicado),
+      ),
+    ],
   ];
 
   return (

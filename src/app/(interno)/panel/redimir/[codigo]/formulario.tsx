@@ -100,24 +100,44 @@ function Confirmacion({
         Compra registrada contra {compra.codigo}
       </span>
 
-      <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
+      {/*
+        La cuenta entera y en el orden en que se dice en caja: cuánto era,
+        cuánto se le quita y cuánto paga.
+
+        La cifra grande es la última, la que se cobra. Antes lo era el
+        descuento —lo llamativo de la promoción— y el total a pagar no
+        aparecía en ninguna parte: la cajera tenía que restar de cabeza justo
+        el número que iba a pedirle al cliente.
+      */}
+      <div className="flex flex-wrap items-end gap-x-7 gap-y-3">
         <span className="flex flex-col gap-[3px]">
           <span className="text-ink/42 text-[9px] font-medium tracking-[0.2em]">
-            DESCUENTO APLICADO
+            COMPRA
           </span>
-          {/* La cifra grande es el descuento y no el total: es lo único de
-              esta pantalla que la cajera tiene que decir en voz alta. */}
-          <span className="font-display text-taupe-deep text-[30px] leading-none">
+          <span className="text-ink text-[17px] leading-none font-medium tabular-nums">
+            {moneda(compra.monto)}
+          </span>
+        </span>
+
+        <span className="text-ink/30 pb-[1px] text-[15px]">−</span>
+
+        <span className="flex flex-col gap-[3px]">
+          <span className="text-ink/42 text-[9px] font-medium tracking-[0.2em]">
+            DESCUENTO
+          </span>
+          <span className="text-taupe-deep text-[17px] leading-none font-medium tabular-nums">
             {moneda(compra.descuento)}
           </span>
         </span>
 
+        <span className="text-ink/30 pb-[1px] text-[15px]">=</span>
+
         <span className="flex flex-col gap-[3px]">
-          <span className="text-ink/42 text-[9px] font-medium tracking-[0.2em]">
-            SOBRE UNA COMPRA DE
+          <span className="text-taupe-dark text-[9px] font-medium tracking-[0.2em]">
+            A COBRAR
           </span>
-          <span className="text-ink text-[15px] leading-none font-medium">
-            {moneda(compra.monto)}
+          <span className="font-display text-taupe-deep text-[30px] leading-none tabular-nums">
+            {moneda(compra.monto - compra.descuento)}
           </span>
         </span>
 
@@ -125,7 +145,7 @@ function Confirmacion({
           <span className="text-ink/42 text-[9px] font-medium tracking-[0.2em]">
             A NOMBRE DE
           </span>
-          <span className="text-ink/70 max-w-[220px] truncate text-[13px] leading-none">
+          <span className="text-ink/70 max-w-[200px] truncate text-[13px] leading-none">
             {compra.comprador}
           </span>
         </span>
@@ -294,7 +314,12 @@ function Captura({
           <span className="text-ink/40 text-[11px]">
             {campo("montoOro") ??
               (descuento > 0
-                ? `Descuento de ${descuento.toFixed(2)} (${pct}%).`
+                ? // Lo que se cobra, ya restado: es la cifra que la cajera va
+                  // a pedirle al cliente, y tenerla aquí evita que la calcule
+                  // de cabeza mientras teclea.
+                  `Descuento de ${descuento.toFixed(2)} (${pct}%). A cobrar ${(
+                    numero(oro) - descuento
+                  ).toFixed(2)}.`
                 : forma
                   ? `Lleva ${pct}% de descuento.`
                   : `Elige la forma de pago: ${visa}% visa, ${transferencia}% transferencia.`)}

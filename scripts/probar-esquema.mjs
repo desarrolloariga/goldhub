@@ -572,8 +572,20 @@ console.log("\nCambios incrementales");
     .filter((f) => f.endsWith(".sql"))
     .sort();
 
+  /* Todas las funciones del esquema antes de tocar nada. */
+  const funciones = async () =>
+    new Set(
+      (
+        await db.query(`
+          select p.proname||'/'||p.pronargs as f
+            from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+           where n.nspname = 'smartvalehubgold'`)
+      ).rows.map((r) => r.f),
+    );
+
   for (const f of sueltos) {
     const sql = readFileSync(path.join(dirCambios, f), "utf8");
+    const antes = await funciones();
     let fallo = null;
     for (const vuelta of [1, 2]) {
       try {
@@ -584,6 +596,24 @@ console.log("\nCambios incrementales");
       }
     }
     afirmar(`${f} entra dos veces seguidas`, fallo === null, fallo ?? "");
+
+    /*
+     * Y no deja ninguna función borrada.
+     *
+     * Un cambio que altera la forma de una función tiene que hacer `drop` y
+     * `create`, porque `create or replace` no puede cambiar el tipo de
+     * retorno (42P13). Si el `create` falta, el archivo se aplica sin error
+     * —y se puede reaplicar sin error— pero la función desaparece: la
+     * pantalla que la llama revienta en producción. Pasó con
+     * `fn_ventas_por_tienda` y el módulo de ventas dejó de abrir.
+     */
+    const despues = await funciones();
+    const perdidas = [...antes].filter((x) => !despues.has(x));
+    afirmar(
+      `${f} no deja ninguna función borrada`,
+      perdidas.length === 0,
+      perdidas.join(", "),
+    );
   }
 }
 

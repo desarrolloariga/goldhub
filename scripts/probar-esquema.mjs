@@ -562,6 +562,14 @@ afirmar(
 console.log("\nChat interno");
 
 {
+  // Una tercera cuenta, para probar que desde fuera no se toca un grupo.
+  const t3 = await uno(
+    `insert into smartvalehubgold.tiendas (nombre, prefijo)
+     values ('Gold Hub Xela', 'XEL') returning *`);
+  const u3 = await uno(
+    `insert into smartvalehubgold.usuarios (nombre, correo, contrasena_hash, rol, tienda_id)
+     values ('Xela', 'xela', 'x', 'tienda', $1) returning *`, [t3.id]);
+
   const d1 = await uno(
     `select * from smartvalehubgold.fn_abrir_directo($1,$2)`, [u1.id, u2.id]);
   afirmar("abrir un directo lo crea", d1.tipo === "directo");
@@ -619,6 +627,57 @@ console.log("\nChat interno");
 
   await rechaza("un grupo sin nombre no se crea", "SV006",
     `select smartvalehubgold.fn_crear_grupo($1,'   ',$2)`, [admin.id, [u1.id]]);
+
+  // ── Administración del grupo ──────────────────────────────────────────
+  const ren = await uno(
+    `select * from smartvalehubgold.fn_renombrar_grupo($1,$2,'Coordinación GT')`,
+    [u1.id, g.id]);
+  afirmar("cualquier participante renombra el grupo",
+    ren.nombre === "Coordinación GT", ren.nombre);
+
+  await rechaza("desde fuera no se toca un grupo", "SV012",
+    `select smartvalehubgold.fn_renombrar_grupo($1,$2,'Ajeno')`,
+    [u3.id, g.id]);
+
+  await rechaza("un directo no se renombra", "SV006",
+    `select smartvalehubgold.fn_renombrar_grupo($1,$2,'Nombre')`,
+    [u1.id, d1.id]);
+
+  const sumados = (await uno(
+    `select smartvalehubgold.fn_agregar_participantes($1,$2,$3) as n`,
+    [u1.id, g.id, [u3.id]])).n;
+  afirmar("se añade a alguien al grupo", sumados === 1, String(sumados));
+
+  const repetido = (await uno(
+    `select smartvalehubgold.fn_agregar_participantes($1,$2,$3) as n`,
+    [u1.id, g.id, [u3.id]])).n;
+  afirmar("y añadirlo otra vez no lo duplica", repetido === 0, String(repetido));
+
+  const quedan = (await uno(
+    `select smartvalehubgold.fn_quitar_participante($1,$2,$3) as n`,
+    [u1.id, g.id, u3.id])).n;
+  afirmar("se quita a alguien del grupo", quedan === 3, String(quedan));
+
+  const lista = (await db.query(
+    `select * from smartvalehubgold.fn_participantes($1,$2)`, [u1.id, g.id])).rows;
+  afirmar("la lista de participantes sale para quien está dentro",
+    lista.length === 3, String(lista.length));
+
+  const ajena = (await db.query(
+    `select * from smartvalehubgold.fn_participantes($1,$2)`, [u3.id, g.id])).rows;
+  afirmar("y sale vacía para quien no lo está",
+    ajena.length === 0, String(ajena.length));
+
+  // Un grupo que se queda sin nadie se borra: nadie podría volver a abrirlo.
+  const g2 = await uno(
+    `select * from smartvalehubgold.fn_crear_grupo($1,'Efímero',$2)`,
+    [u1.id, []]);
+  await db.query(`select smartvalehubgold.fn_quitar_participante($1,$2,$1)`,
+    [u1.id, g2.id]);
+  const vive = (await db.query(
+    `select count(*)::int n from smartvalehubgold.conversaciones where id = $1`,
+    [g2.id])).rows[0].n;
+  afirmar("un grupo vacío se borra solo", vive === 0, String(vive));
 }
 
 // ── Cambios incrementales ────────────────────────────────────────────────

@@ -5,6 +5,8 @@ import { z } from "zod";
 
 import { requerirSesion } from "@/lib/auth/guardas";
 import { db } from "@/lib/supabase/server";
+import { randomBytes } from "node:crypto";
+import sharp from "sharp";
 
 /**
  * Acciones del chat.
@@ -145,4 +147,211 @@ export async function crearGrupo(
 
   revalidatePath("/panel/chat");
   return { ok: true, id: (data as { id: number } | null)?.id };
+}
+
+/** Lo que acepta el bucket. Debe coincidir con la migración del almacén. */
+const TIPOS_IMAGEN = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+const MAXIMO_IMAGEN = 8 * 1024 * 1024;
+/** El lado mayor tras reducir. Suficiente para ver una foto o una captura. */
+const LADO_MAXIMO = 1600;
+
+/*
+ * Sin `export`: un archivo "use server" solo puede exportar funciones
+ * asíncronas —todo lo demás se convierte en un punto de entrada del cliente—,
+ * y esto no lo necesita nadie fuera.
+ */
+const BUCKET_ADJUNTOS = "chat-adjuntos";
+
+/**
+ * Envía una imagen: la reduce, la sube y la anuncia en la conversación.
+ *
+ * Se comprueba la pertenencia ANTES de subir el archivo. Al revés dejaría
+ * basura en el almacén cada vez que alguien intentara escribir donde no debe.
+ *
+ * Los GIF se suben tal cual: `sharp` los aplanaría al primer fotograma y un
+ * GIF quieto no es lo que nadie quiso mandar.
+ */
+export async function enviarImagen(
+  _previo: EstadoChat,
+  formData: FormData,
+): Promise<EstadoChat> {
+  const sesion = await requerirSesion();
+
+  const conversacionId = Number(formData.get("conversacionId"));
+  if (!Number.isInteger(conversacionId) || conversacionId <= 0) {
+    return { error: "Conversación inválida." };
+  }
+
+  const archivo = formData.get("imagen");
+  if (!(archivo instanceof File) || archivo.size === 0) {
+    return { error: "Elige una imagen." };
+  }
+  if (!TIPOS_IMAGEN.includes(archivo.type)) {
+    return { error: "Solo se pueden enviar imágenes PNG, JPG, WebP o GIF." };
+  }
+  if (archivo.size > MAXIMO_IMAGEN) {
+    return { error: "La imagen pesa más de 8 MB. Usa una más ligera." };
+  }
+
+  const { data: participa } = await db()
+    .from("conversacion_participantes")
+    .select("usuario_id")
+    .eq("conversacion_id", conversacionId)
+    .eq("usuario_id", sesion.usuarioId)
+    .maybeSingle();
+
+  if (!participa) return { error: "No participas en esa conversación." };
+
+  const crudo = Buffer.from(await archivo.arrayBuffer());
+  let cuerpo = crudo;
+  let extension = "png";
+  let tipoMime = archivo.type;
+  let ancho: number | null = null;
+  let alto: number | null = null;
+
+  if (archivo.type === "image/gif") {
+    extension = "gif";
+  } else {
+    try {
+      const entrada = sharp(crudo);
+      const meta = await entrada.metadata();
+      ancho = meta.width ?? null;
+      alto = meta.height ?? null;
+
+      // `withoutEnlargement` para que una captura pequeña no salga borrosa
+      // estirada hasta 1600.
+      cuerpo = await entrada
+        .rotate()
+        .resize(LADO_MAXIMO, LADO_MAXIMO, {
+          fit: "inside",
+          withoutEnlargement: true,
+        })
+        .webp({ quality: 82 })
+        .toBuffer();
+
+      const nueva = await sharp(cuerpo).metadata();
+      ancho = nueva.width ?? ancho;
+      alto = nueva.height ?? alto;
+      extension = "webp";
+      tipoMime = "image/webp";
+    } catch {
+      return { error: "No se pudo procesar la imagen. Prueba con otra." };
+    }
+  }
+
+  const ruta = `${conversacionId}/${randomBytes(8).toString("hex")}.${extension}`;
+
+  const { error: errorSubida } = await db()
+    .storage.from(BUCKET_ADJUNTOS)
+    .upload(ruta, cuerpo, { contentType: tipoMime, upsert: false });
+
+  if (errorSubida) {
+    return { error: `No se pudo subir la imagen: ${errorSubida.message}` };
+  }
+
+  const pie = String(formData.get("cuerpo") ?? "").trim().slice(0, 4000);
+
+  const { error } = await db().rpc("fn_enviar_mensaje", {
+    p_usuario_id: sesion.usuarioId,
+    p_conversacion_id: conversacionId,
+    p_cuerpo: pie,
+    p_tipo: "imagen",
+    p_adjunto_ruta: ruta,
+    p_adjunto_ancho: ancho,
+    p_adjunto_alto: alto,
+  });
+
+  if (error) {
+    // El mensaje manda: una imagen que no anuncia nadie es basura.
+    await db().storage.from(BUCKET_ADJUNTOS).remove([ruta]);
+    return { error: traducir(error, "No se pudo enviar la imagen.") };
+  }
+
+  revalidatePath("/panel/chat");
+  return { ok: true };
+}
+
+/** Cambia el nombre de un grupo. Lo puede hacer cualquier participante. */
+export async function renombrarGrupo(
+  _previo: EstadoChat,
+  formData: FormData,
+): Promise<EstadoChat> {
+  const sesion = await requerirSesion();
+
+  const id = Number(formData.get("conversacionId"));
+  const nombre = String(formData.get("nombre") ?? "").trim();
+
+  if (!Number.isInteger(id) || id <= 0) return { error: "Grupo inválido." };
+  if (nombre.length < 2) return { error: "El grupo necesita un nombre." };
+  if (nombre.length > 80) return { error: "El nombre es demasiado largo." };
+
+  const { error } = await db().rpc("fn_renombrar_grupo", {
+    p_usuario_id: sesion.usuarioId,
+    p_conversacion_id: id,
+    p_nombre: nombre,
+  });
+
+  if (error) return { error: traducir(error, "No se pudo renombrar.") };
+
+  revalidatePath("/panel/chat");
+  return { ok: true };
+}
+
+export async function agregarParticipantes(
+  _previo: EstadoChat,
+  formData: FormData,
+): Promise<EstadoChat> {
+  const sesion = await requerirSesion();
+
+  const id = Number(formData.get("conversacionId"));
+  const nuevos = formData
+    .getAll("participantes")
+    .map(Number)
+    .filter((n) => Number.isInteger(n) && n > 0);
+
+  if (!Number.isInteger(id) || id <= 0) return { error: "Grupo inválido." };
+  if (nuevos.length === 0) return { error: "Elige a quién añadir." };
+
+  const { error } = await db().rpc("fn_agregar_participantes", {
+    p_usuario_id: sesion.usuarioId,
+    p_conversacion_id: id,
+    p_nuevos: nuevos,
+  });
+
+  if (error) return { error: traducir(error, "No se pudo añadir.") };
+
+  revalidatePath("/panel/chat");
+  return { ok: true };
+}
+
+/**
+ * Saca a alguien del grupo, o lo abandona uno mismo.
+ *
+ * Es la misma operación: la diferencia está en a quién se señala, y la base
+ * ya comprueba que quien la pide esté dentro.
+ */
+export async function quitarParticipante(
+  _previo: EstadoChat,
+  formData: FormData,
+): Promise<EstadoChat> {
+  const sesion = await requerirSesion();
+
+  const id = Number(formData.get("conversacionId"));
+  const objetivo = Number(formData.get("usuarioId"));
+
+  if (!Number.isInteger(id) || id <= 0) return { error: "Grupo inválido." };
+  if (!Number.isInteger(objetivo) || objetivo <= 0) {
+    return { error: "Participante inválido." };
+  }
+
+  const { error } = await db().rpc("fn_quitar_participante", {
+    p_usuario_id: sesion.usuarioId,
+    p_conversacion_id: id,
+    p_objetivo_id: objetivo,
+  });
+
+  if (error) return { error: traducir(error, "No se pudo quitar.") };
+
+  revalidatePath("/panel/chat");
+  return { ok: true };
 }

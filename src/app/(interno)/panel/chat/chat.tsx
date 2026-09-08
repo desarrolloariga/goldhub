@@ -2,26 +2,27 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MessageSquare, Search, Send, Users } from "lucide-react";
+import { ImagePlus, MessageSquare, Search, Send, Settings2, Users, X } from "lucide-react";
 
-import { enviarMensaje, marcarLeido } from "@/lib/acciones/chat";
+import { enviarImagen, enviarMensaje, marcarLeido } from "@/lib/acciones/chat";
 import type { Contacto, Conversacion, Mensaje } from "@/lib/datos/chat";
 
 import { avisar, pedirPermiso } from "./avisos";
 import { NuevaConversacion } from "./nueva";
-
-/** Cada cuánto se pregunta por mensajes nuevos, en milisegundos. */
-const SONDEO = 4000;
+import { PanelGrupo, type Participante } from "./grupo";
 
 /**
  * El chat entero: bandeja a la izquierda, conversación a la derecha.
  *
- * Los mensajes llegan por sondeo y no por conexión persistente. Es lo que
- * encaja con la arquitectura de hoy: el navegador no tiene llave de Supabase
- * —todo pasa por el servidor con la de servicio— y abrirle el esquema para
- * escuchar en vivo exige políticas RLS que esta aplicación no puede escribir,
- * porque no usa Supabase Auth y `auth.uid()` no existe. Cuatro segundos de
- * espera en un chat de trabajo no se notan; publicar la llave sí se notaría.
+ * Los mensajes llegan por una conexión abierta contra el propio servidor
+ * (SSE, `/api/chat/flujo`), que los empuja en cuanto entran. Se hace así y no
+ * con Realtime de Supabase porque aquel exige que el navegador hable directo
+ * con la base: habría que publicarle una llave y escribir políticas RLS, y
+ * esta aplicación no usa Supabase Auth, así que RLS no sabría quién es cada
+ * quien. Con SSE la llave no sale del servidor y el esquema sigue cerrado.
+ *
+ * El navegador reconecta solo si la conexión se corta —lo hace de serie—, así
+ * que no hay que vigilarla desde aquí.
  */
 export function Chat({
   yo,
@@ -29,19 +30,41 @@ export function Chat({
   contactos,
   abierta,
   mensajes: iniciales,
+  participantes,
 }: {
   yo: number;
   conversaciones: Conversacion[];
   contactos: Contacto[];
   abierta: number | null;
   mensajes: Mensaje[];
+  participantes: Participante[];
 }) {
   const router = useRouter();
   const [filtro, setFiltro] = useState("");
   const [mensajes, setMensajes] = useState<Mensaje[]>(iniciales);
   const [texto, setTexto] = useState("");
+  /*
+   * La imagen esperando a enviarse, con su vista previa. Se manda con el pie
+   * que haya escrito, así que no sale disparada al elegirla: se ve antes lo
+   * que se va a mandar, que es lo que evita el susto de pegar la captura
+   * equivocada.
+   */
+  const [imagen, setImagen] = useState<{ archivo: File; previa: string } | null>(
+    null,
+  );
+  const [verGrupo, setVerGrupo] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /*
+   * El último mensaje conocido, para pedir el flujo desde ahí. Va en un `ref`
+   * y no como dependencia del efecto a propósito: si el efecto dependiera de
+   * `mensajes`, cada mensaje recibido cerraría la conexión y abriría otra.
+   */
+  const mensajesRef = useRef<Mensaje[]>(iniciales);
+  useEffect(() => {
+    mensajesRef.current = mensajes;
+  }, [mensajes]);
 
   const finRef = useRef<HTMLDivElement>(null);
   const cajaRef = useRef<HTMLDivElement>(null);
@@ -60,7 +83,19 @@ export function Chat({
     iniciales.length ? iniciales[iniciales.length - 1].id : 0,
   );
 
-  const conv = conversaciones.find((c) => c.id === abierta) ?? null;
+  /*
+   * La bandeja llega del servidor y luego la refresca el flujo, así que vive
+   * en estado. Se resiembra cuando el servidor manda otra —al navegar—, con
+   * el mismo patrón que el historial.
+   */
+  const [lista, setLista] = useState(conversaciones);
+  const [listaPintada, setListaPintada] = useState(conversaciones);
+  if (listaPintada !== conversaciones) {
+    setListaPintada(conversaciones);
+    setLista(conversaciones);
+  }
+
+  const conv = lista.find((c) => c.id === abierta) ?? null;
 
   /*
    * Cuando el servidor manda otra conversación, el historial se rehace
@@ -81,53 +116,54 @@ export function Chat({
     finRef.current?.scrollIntoView({ block: "end" });
   }, [mensajes]);
 
-  /* El sondeo. */
+  /* La conexión en vivo. */
   useEffect(() => {
-    if (!abierta) return;
+    const desde = mensajesRef.current.length
+      ? mensajesRef.current[mensajesRef.current.length - 1].id
+      : 0;
 
-    let vivo = true;
-    const tic = async () => {
-      const desde = mensajes.length ? mensajes[mensajes.length - 1].id : 0;
-      try {
-        const r = await fetch(
-          `/api/chat/mensajes?c=${abierta}&desde=${desde}`,
-          { cache: "no-store" },
-        );
-        if (!r.ok || !vivo) return;
-        const nuevos: Mensaje[] = await r.json();
-        if (!nuevos.length || !vivo) return;
+    const fuente = new EventSource(
+      `/api/chat/flujo?c=${abierta ?? 0}&desde=${desde}`,
+    );
 
-        setMensajes((previos) => [...previos, ...nuevos]);
+    fuente.addEventListener("mensajes", (e) => {
+      const nuevos: Mensaje[] = JSON.parse((e as MessageEvent).data);
+      if (!nuevos.length) return;
 
-        /*
-         * Solo suena lo ajeno. Que el sistema te avise de tu propio mensaje
-         * sería ruido, y en una pestaña abierta en otra ventana resulta
-         * especialmente molesto.
-         */
-        const deOtros = nuevos.filter(
-          (m) => m.autor_id !== yo && m.id > ultimoAvisado,
-        );
-        if (deOtros.length) {
-          const ultimo = deOtros[deOtros.length - 1];
-          setUltimoAvisado(ultimo.id);
-          avisar(ultimo.autor, ultimo.cuerpo || "Te envió una imagen");
-        }
+      setMensajes((previos) => {
+        // El servidor puede reenviar algo que ya se pintó al reconectar: se
+        // filtra por id en vez de confiar en que nunca pase.
+        const vistos = new Set(previos.map((m) => m.id));
+        const frescos = nuevos.filter((m) => !vistos.has(m.id));
+        return frescos.length ? [...previos, ...frescos] : previos;
+      });
 
-        // Se marca leído lo que acaba de entrar: la persona lo está viendo.
-        await marcarLeido(abierta, nuevos[nuevos.length - 1].id);
-        router.refresh();
-      } catch {
-        // Un sondeo fallido no se anuncia: la red se cae un segundo y vuelve,
-        // y un error en pantalla por eso sería peor que el silencio.
+      /*
+       * Solo suena lo ajeno. Que el sistema te avise de tu propio mensaje
+       * sería ruido, y en una pestaña abierta en otra ventana resulta
+       * especialmente molesto.
+       */
+      setUltimoAvisado((previo) => {
+        const deOtros = nuevos.filter((m) => m.autor_id !== yo && m.id > previo);
+        if (!deOtros.length) return previo;
+        const ultimo = deOtros[deOtros.length - 1];
+        avisar(ultimo.autor, ultimo.cuerpo || "Te envió una imagen");
+        return ultimo.id;
+      });
+
+      if (abierta) {
+        void marcarLeido(abierta, nuevos[nuevos.length - 1].id);
       }
-    };
+    });
 
-    const id = setInterval(tic, SONDEO);
-    return () => {
-      vivo = false;
-      clearInterval(id);
-    };
-  }, [abierta, mensajes, router, yo, ultimoAvisado]);
+    // La bandeja llega por el mismo flujo: el contador de no leídos se mueve
+    // aunque quien mira esté en otra conversación.
+    fuente.addEventListener("bandeja", (e) => {
+      setLista(JSON.parse((e as MessageEvent).data) as Conversacion[]);
+    });
+
+    return () => fuente.close();
+  }, [abierta, yo]);
 
   // El permiso se pide al entrar al chat, no al cargar el panel: pedirlo
   // antes de que se vea para qué es la forma más rápida de que lo denieguen.
@@ -135,14 +171,28 @@ export function Chat({
     void pedirPermiso();
   }, []);
 
-  const visibles = conversaciones.filter((c) =>
+  const visibles = lista.filter((c) =>
     c.titulo.toLowerCase().includes(filtro.trim().toLowerCase()),
   );
+
+  function tomarImagen(archivo: File | null) {
+    if (!archivo) return;
+    if (!archivo.type.startsWith("image/")) return;
+    setError(null);
+    setImagen({ archivo, previa: URL.createObjectURL(archivo) });
+  }
+
+  function soltarImagen() {
+    // La URL temporal se libera a mano: el navegador no las recoge solo, y en
+    // una sesión larga de chat se acumulan.
+    if (imagen) URL.revokeObjectURL(imagen.previa);
+    setImagen(null);
+  }
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
     const cuerpo = texto.trim();
-    if (!cuerpo || !abierta || enviando) return;
+    if ((!cuerpo && !imagen) || !abierta || enviando) return;
 
     setEnviando(true);
     setError(null);
@@ -150,8 +200,11 @@ export function Chat({
     const datos = new FormData();
     datos.set("conversacionId", String(abierta));
     datos.set("cuerpo", cuerpo);
+    if (imagen) datos.set("imagen", imagen.archivo);
 
-    const r = await enviarMensaje(null, datos);
+    const r = imagen
+      ? await enviarImagen(null, datos)
+      : await enviarMensaje(null, datos);
     setEnviando(false);
 
     if (r?.error) {
@@ -162,6 +215,7 @@ export function Chat({
     }
 
     setTexto("");
+    soltarImagen();
     const desde = mensajes.length ? mensajes[mensajes.length - 1].id : 0;
     const res = await fetch(`/api/chat/mensajes?c=${abierta}&desde=${desde}`, {
       cache: "no-store",
@@ -175,7 +229,11 @@ export function Chat({
   }
 
   return (
-    <div className="border-ink/8 bg-paper rounded-card grid h-[calc(100vh-190px)] min-h-[440px] grid-cols-1 overflow-hidden border md:grid-cols-[minmax(0,300px)_minmax(0,1fr)]">
+    <div className={`border-ink/8 bg-paper rounded-card relative grid h-[calc(100vh-190px)] min-h-[440px] grid-cols-1 overflow-hidden border ${
+        conv?.tipo === "grupo" && verGrupo
+          ? "md:grid-cols-[minmax(0,300px)_minmax(0,1fr)_auto]"
+          : "md:grid-cols-[minmax(0,300px)_minmax(0,1fr)]"
+      }`}>
       {/* ── Bandeja ─────────────────────────────────────────────────── */}
       <aside
         className={`border-ink/8 flex min-h-0 flex-col md:border-r ${
@@ -198,7 +256,7 @@ export function Chat({
         <ul className="m-0 min-h-0 flex-1 list-none overflow-y-auto p-0">
           {visibles.length === 0 ? (
             <li className="text-ink/40 px-4 py-8 text-center text-[12.5px]">
-              {conversaciones.length === 0
+              {lista.length === 0
                 ? "Todavía no has hablado con nadie."
                 : "Ninguna conversación coincide."}
             </li>
@@ -273,7 +331,7 @@ export function Chat({
               >
                 ←
               </a>
-              <span className="flex min-w-0 flex-col">
+              <span className="flex min-w-0 flex-1 flex-col">
                 <span className="text-ink truncate text-[14px] font-medium">
                   {conv.titulo}
                 </span>
@@ -285,6 +343,17 @@ export function Chat({
                       : "Conversación directa"}
                 </span>
               </span>
+              {conv.tipo === "grupo" ? (
+                <button
+                  type="button"
+                  onClick={() => setVerGrupo((v) => !v)}
+                  title="Administrar el grupo"
+                  aria-label="Administrar el grupo"
+                  className="border-ink/12 text-ink/45 hover:border-taupe hover:text-taupe-dark flex size-[30px] shrink-0 cursor-pointer items-center justify-center rounded-full border transition-colors"
+                >
+                  <Settings2 size={14} />
+                </button>
+              ) : null}
             </header>
 
             <div
@@ -313,15 +382,32 @@ export function Chat({
                           {m.autor}
                         </span>
                       ) : null}
-                      <span
-                        className={`rounded-card px-[13px] py-[9px] text-[13px] leading-relaxed break-words whitespace-pre-wrap ${
-                          mio
-                            ? "bg-taupe-dark text-white"
-                            : "bg-bone text-ink border-ink/6 border"
-                        }`}
-                      >
-                        {m.cuerpo}
-                      </span>
+                      {m.tipo === "imagen" ? (
+                        <a
+                          href={`/api/chat/adjunto?m=${m.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-card border-ink/8 overflow-hidden border"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={`/api/chat/adjunto?m=${m.id}`}
+                            alt={m.cuerpo || "Imagen"}
+                            className="block max-h-[320px] w-auto max-w-full object-contain"
+                          />
+                        </a>
+                      ) : null}
+                      {m.cuerpo ? (
+                        <span
+                          className={`rounded-card px-[13px] py-[9px] text-[13px] leading-relaxed break-words whitespace-pre-wrap ${
+                            mio
+                              ? "bg-taupe-dark text-white"
+                              : "bg-bone text-ink border-ink/6 border"
+                          }`}
+                        >
+                          {m.cuerpo}
+                        </span>
+                      ) : null}
                       <span className="text-ink/30 px-1 text-[10px]">
                         {hora(m.fecha_creacion)}
                       </span>
@@ -341,10 +427,60 @@ export function Chat({
                   {error}
                 </span>
               ) : null}
+              {imagen ? (
+                <span className="border-ink/10 bg-bone rounded-card flex items-center gap-3 border p-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={imagen.previa}
+                    alt=""
+                    className="rounded-field size-[54px] object-cover"
+                  />
+                  <span className="text-ink/55 flex-1 truncate text-[11.5px]">
+                    {imagen.archivo.name || "Imagen pegada"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={soltarImagen}
+                    title="Quitar"
+                    className="text-ink/40 hover:text-ink cursor-pointer"
+                  >
+                    <X size={15} />
+                  </button>
+                </span>
+              ) : null}
+
               <div className="flex items-end gap-2">
+                <label
+                  title="Adjuntar imagen"
+                  className="border-ink/14 text-ink/50 hover:border-taupe hover:text-taupe-dark rounded-field flex size-[42px] shrink-0 cursor-pointer items-center justify-center border transition-colors"
+                >
+                  <ImagePlus size={16} />
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    className="hidden"
+                    onChange={(e) => {
+                      tomarImagen(e.target.files?.[0] ?? null);
+                      // Se limpia para que elegir el mismo archivo dos veces
+                      // seguidas vuelva a disparar el cambio.
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
                 <textarea
                   value={texto}
                   onChange={(e) => setTexto(e.target.value)}
+                  onPaste={(e) => {
+                    // Captura de pantalla pegada directamente: es como la
+                    // gente manda una imagen sin guardarla antes en disco.
+                    const archivo = Array.from(e.clipboardData.items)
+                      .find((i) => i.type.startsWith("image/"))
+                      ?.getAsFile();
+                    if (archivo) {
+                      e.preventDefault();
+                      tomarImagen(archivo);
+                    }
+                  }}
                   onKeyDown={(e) => {
                     // Enter envía; Mayús+Enter hace párrafo. Es lo que la
                     // gente ya tiene en los dedos de cualquier otro chat.
@@ -359,7 +495,7 @@ export function Chat({
                 />
                 <button
                   type="submit"
-                  disabled={enviando || !texto.trim()}
+                  disabled={enviando || (!texto.trim() && !imagen)}
                   title="Enviar"
                   className="bg-ink text-taupe-light rounded-field flex size-[42px] shrink-0 cursor-pointer items-center justify-center transition-opacity disabled:opacity-40"
                 >
@@ -370,6 +506,21 @@ export function Chat({
           </>
         )}
       </section>
+
+      {/* Ocupa una tercera columna solo cuando está abierto: reservarle sitio
+          fijo dejaría la conversación estrecha el resto del tiempo. */}
+      {conv?.tipo === "grupo" && verGrupo ? (
+        <div className="border-ink/8 absolute inset-0 z-10 flex bg-white md:static md:z-auto">
+          <PanelGrupo
+            conversacionId={conv.id}
+            nombre={conv.titulo}
+            yo={yo}
+            participantes={participantes}
+            contactos={contactos}
+            alCerrar={() => setVerGrupo(false)}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

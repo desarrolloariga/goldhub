@@ -708,6 +708,32 @@ export type Database = {
         };
         Returns: undefined;
       };
+      fn_renombrar_grupo: {
+        Args: { p_usuario_id: number; p_conversacion_id: number; p_nombre: string };
+        Returns: { id: number; nombre: string | null };
+      };
+      fn_agregar_participantes: {
+        Args: { p_usuario_id: number; p_conversacion_id: number; p_nuevos: number[] };
+        Returns: number;
+      };
+      fn_quitar_participante: {
+        Args: {
+          p_usuario_id: number;
+          p_conversacion_id: number;
+          p_objetivo_id: number;
+        };
+        Returns: number;
+      };
+      fn_participantes: {
+        Args: { p_usuario_id: number; p_conversacion_id: number };
+        Returns: {
+          usuario_id: number;
+          nombre: string;
+          rol: string;
+          tienda: string | null;
+          es_creador: boolean;
+        }[];
+      };
       fn_bandeja: {
         Args: { p_usuario_id: number };
         Returns: {

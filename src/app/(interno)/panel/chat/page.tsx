@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 
 import { requerirSesion } from "@/lib/auth/guardas";
-import { bandeja, contactos, mensajes } from "@/lib/datos/chat";
+import {
+  bandeja,
+  contactos,
+  mensajes,
+  participantes,
+} from "@/lib/datos/chat";
 
 import { Chat } from "./chat";
 
@@ -37,9 +42,12 @@ export default async function PaginaChat({
    * sesión no participa —alguien escribiendo un número a mano en la URL—, y
    * entonces se trata como si no hubiera nada abierto.
    */
-  const historial = abierta
-    ? await mensajes(sesion.usuarioId, abierta)
-    : null;
+  const [historial, gente2] = abierta
+    ? await Promise.all([
+        mensajes(sesion.usuarioId, abierta),
+        participantes(sesion.usuarioId, abierta),
+      ])
+    : [null, []];
 
   return (
     <Chat
@@ -48,6 +56,7 @@ export default async function PaginaChat({
       contactos={gente}
       abierta={historial ? abierta : null}
       mensajes={historial ?? []}
+      participantes={gente2}
     />
   );
 }

@@ -130,3 +130,30 @@ export async function conversacion(
   const filas = await bandeja(usuarioId);
   return filas.find((c) => c.id === conversacionId) ?? null;
 }
+
+export type Participante = {
+  usuario_id: number;
+  nombre: string;
+  rol: string;
+  tienda: string | null;
+  es_creador: boolean;
+};
+
+/**
+ * Quiénes están en una conversación.
+ *
+ * La función de Postgres devuelve vacío si quien pregunta no participa, así
+ * que no revela quiénes hablan en un grupo ajeno.
+ */
+export async function participantes(
+  usuarioId: number,
+  conversacionId: number,
+): Promise<Participante[]> {
+  const { data, error } = await db().rpc("fn_participantes", {
+    p_usuario_id: usuarioId,
+    p_conversacion_id: conversacionId,
+  });
+
+  if (error) throw new Error(`No se pudieron leer los participantes: ${error.message}`);
+  return (data ?? []) as Participante[];
+}

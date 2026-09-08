@@ -47,6 +47,17 @@ export function proxy(request: NextRequest) {
   const tieneCookie = Boolean(request.cookies.get(COOKIE_SESION)?.value);
 
   if (!tieneCookie && !esPublica(pathname)) {
+    /*
+     * Una ruta de API se responde con 401 y no con una redirección: quien la
+     * llama es un `fetch`, y recibir el HTML del login con estado 200 tras
+     * seguir el salto lo deja intentando leer una página como si fuera JSON.
+     * El sondeo del chat fallaría en silencio, que es la peor forma de
+     * fallar.
+     */
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Sin sesión" }, { status: 401 });
+    }
+
     const destino = request.nextUrl.clone();
     destino.pathname = "/login";
     destino.search = "";

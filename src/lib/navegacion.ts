@@ -11,7 +11,7 @@ export type ItemNav = {
   /** Título de la cabecera si difiere del nombre del menú. */
   titulo?: string;
   /** Nombre del icono de lucide-react usado en la barra inferior móvil. */
-  icono?: "inicio" | "emitir" | "redimir" | "vales" | "redenciones";
+  icono?: "inicio" | "emitir" | "redimir" | "vales" | "redenciones" | "chat";
   /** Aparece en la barra inferior del móvil. */
   destacado?: boolean;
 };
@@ -54,6 +54,18 @@ export const NAVEGACION: GrupoNav[] = [
         nombre: "Redenciones",
         href: "/panel/redenciones",
         icono: "redenciones",
+      },
+      /*
+       * Va en OPERACIÓN y no en un grupo propio: lo usan todas las cuentas,
+       * a diario y sin importar el rol. Y destacado, porque en el móvil un
+       * chat que hay que buscar por el menú no se lee.
+       */
+      {
+        nombre: "Chat",
+        href: "/panel/chat",
+        titulo: "Chat interno",
+        icono: "chat",
+        destacado: true,
       },
     ],
   },

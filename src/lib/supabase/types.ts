@@ -69,6 +69,66 @@ export type Database = {
         Relationships: [];
       };
 
+      conversaciones: {
+        Row: {
+          id: number;
+          tipo: "directo" | "grupo";
+          /** Solo los grupos. Un directo se titula con el nombre del otro. */
+          nombre: string | null;
+          creado_por: number | null;
+          /** La pareja de un directo, «menor:mayor». Nula en los grupos. */
+          clave_directo: string | null;
+          ultimo_mensaje_en: string | null;
+          fecha_creacion: string;
+          fecha_actualizacion: string | null;
+        };
+        Insert: {
+          tipo: "directo" | "grupo";
+          nombre?: string | null;
+          creado_por?: number | null;
+          clave_directo?: string | null;
+        };
+        Update: {
+          nombre?: string | null;
+          ultimo_mensaje_en?: string | null;
+        };
+        Relationships: [];
+      };
+      conversacion_participantes: {
+        Row: {
+          conversacion_id: number;
+          usuario_id: number;
+          /** Último `mensajes.id` leído. Lo de encima está sin leer. */
+          leido_hasta: number;
+          fecha_ingreso: string;
+        };
+        Insert: { conversacion_id: number; usuario_id: number };
+        Update: { leido_hasta?: number };
+        Relationships: [];
+      };
+      mensajes: {
+        Row: {
+          id: number;
+          conversacion_id: number;
+          /** Nulo si la cuenta se borró: el mensaje se queda. */
+          autor_id: number | null;
+          tipo: "texto" | "imagen";
+          cuerpo: string;
+          adjunto_ruta: string | null;
+          adjunto_ancho: number | null;
+          adjunto_alto: number | null;
+          fecha_creacion: string;
+        };
+        Insert: {
+          conversacion_id: number;
+          autor_id?: number | null;
+          tipo?: "texto" | "imagen";
+          cuerpo?: string;
+          adjunto_ruta?: string | null;
+        };
+        Update: { cuerpo?: string };
+        Relationships: [];
+      };
       usuarios: {
         Row: {
           id: number;
@@ -615,6 +675,54 @@ export type Database = {
       fn_ventas_por_dia: {
         Args: VentasArgs;
         Returns: { dia: string; tickets: number; venta: number; descuento: number }[];
+      };
+      fn_abrir_directo: {
+        Args: { p_usuario_id: number; p_otro_id: number };
+        Returns: { id: number; tipo: "directo" | "grupo" };
+      };
+      fn_crear_grupo: {
+        Args: {
+          p_usuario_id: number;
+          p_nombre: string;
+          p_participantes: number[];
+        };
+        Returns: { id: number; nombre: string | null };
+      };
+      fn_enviar_mensaje: {
+        Args: {
+          p_usuario_id: number;
+          p_conversacion_id: number;
+          p_cuerpo?: string;
+          p_tipo?: string;
+          p_adjunto_ruta?: string | null;
+          p_adjunto_ancho?: number | null;
+          p_adjunto_alto?: number | null;
+        };
+        Returns: { id: number; conversacion_id: number; cuerpo: string };
+      };
+      fn_marcar_leido: {
+        Args: {
+          p_usuario_id: number;
+          p_conversacion_id: number;
+          p_hasta: number;
+        };
+        Returns: undefined;
+      };
+      fn_bandeja: {
+        Args: { p_usuario_id: number };
+        Returns: {
+          id: number;
+          tipo: "directo" | "grupo";
+          titulo: string;
+          otro_id: number | null;
+          otro_activo: boolean | null;
+          participantes: number;
+          ultimo_cuerpo: string;
+          ultimo_tipo: "texto" | "imagen";
+          ultimo_autor: string | null;
+          ultimo_mensaje_en: string | null;
+          no_leidos: number;
+        }[];
       };
       fn_ventas_por_tienda: {
         Args: VentasArgs;

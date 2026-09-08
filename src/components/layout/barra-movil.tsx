@@ -2,13 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  House,
-  QrCode,
-  ScanLine,
-  Ticket,
-  type LucideIcon,
-} from "lucide-react";
+import { House, MessageSquare, QrCode, ScanLine, Ticket, type LucideIcon } from "lucide-react";
 
 import { accesosMoviles, itemActivo, type ItemNav } from "@/lib/navegacion";
 import type { RolUsuario } from "@/lib/supabase/types";
@@ -27,6 +21,7 @@ const ICONOS: Record<NonNullable<ItemNav["icono"]>, LucideIcon> = {
   redimir: ScanLine,
   vales: Ticket,
   redenciones: Ticket,
+  chat: MessageSquare,
 };
 
 export function BarraMovil({ rol }: { rol: RolUsuario }) {

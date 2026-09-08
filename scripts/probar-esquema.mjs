@@ -558,6 +558,69 @@ afirmar(
   );
 }
 
+// ── Chat ─────────────────────────────────────────────────────────────────
+console.log("\nChat interno");
+
+{
+  const d1 = await uno(
+    `select * from smartvalehubgold.fn_abrir_directo($1,$2)`, [u1.id, u2.id]);
+  afirmar("abrir un directo lo crea", d1.tipo === "directo");
+
+  // Lo que más puede romperse: dos personas escribiéndose a la vez acabando
+  // cada una en su propia conversación, sin ver los mensajes de la otra.
+  const d2 = await uno(
+    `select * from smartvalehubgold.fn_abrir_directo($1,$2)`, [u2.id, u1.id]);
+  afirmar("y al revés devuelve el mismo, no uno nuevo", d1.id === d2.id,
+    `${d1.id} vs ${d2.id}`);
+
+  await rechaza("nadie abre un directo consigo mismo", "SV006",
+    `select smartvalehubgold.fn_abrir_directo($1,$1)`, [u1.id]);
+
+  const m1 = await uno(
+    `select * from smartvalehubgold.fn_enviar_mensaje($1,$2,'Hola')`,
+    [u1.id, d1.id]);
+  afirmar("se envía un mensaje", m1.cuerpo === "Hola");
+
+  await rechaza("quien no participa no escribe", "SV012",
+    `select smartvalehubgold.fn_enviar_mensaje($1,$2,'Cuela')`,
+    [admin.id, d1.id]);
+
+  // El que recibe lo ve sin leer; el que escribe, no: su propio mensaje no
+  // puede contarle como pendiente.
+  const bandejaU2 = (await db.query(
+    `select * from smartvalehubgold.fn_bandeja($1)`, [u2.id])).rows;
+  const bandejaU1 = (await db.query(
+    `select * from smartvalehubgold.fn_bandeja($1)`, [u1.id])).rows;
+  afirmar("el que recibe lo ve sin leer",
+    bandejaU2[0]?.no_leidos === 1, String(bandejaU2[0]?.no_leidos));
+  afirmar("y el que escribe no se cuenta a sí mismo",
+    bandejaU1[0]?.no_leidos === 0, String(bandejaU1[0]?.no_leidos));
+
+  // Un directo se titula con el nombre del otro, distinto para cada uno.
+  afirmar("cada uno ve el directo con el nombre del otro",
+    bandejaU2[0]?.titulo === "Mazate" && bandejaU1[0]?.titulo === "Pradera",
+    `${bandejaU2[0]?.titulo} / ${bandejaU1[0]?.titulo}`);
+
+  await db.query(`select smartvalehubgold.fn_marcar_leido($1,$2,$3)`,
+    [u2.id, d1.id, m1.id]);
+  const trasLeer = (await db.query(
+    `select * from smartvalehubgold.fn_bandeja($1)`, [u2.id])).rows;
+  afirmar("marcar leído baja el contador",
+    trasLeer[0]?.no_leidos === 0, String(trasLeer[0]?.no_leidos));
+
+  const g = await uno(
+    `select * from smartvalehubgold.fn_crear_grupo($1,'Coordinación',$2)`,
+    [admin.id, [u1.id, u2.id]]);
+  afirmar("se crea un grupo con su nombre", g.nombre === "Coordinación");
+  const enGrupo = (await db.query(
+    `select count(*)::int n from smartvalehubgold.conversacion_participantes
+      where conversacion_id = $1`, [g.id])).rows[0].n;
+  afirmar("y quien lo crea entra aunque no se liste", enGrupo === 3, String(enGrupo));
+
+  await rechaza("un grupo sin nombre no se crea", "SV006",
+    `select smartvalehubgold.fn_crear_grupo($1,'   ',$2)`, [admin.id, [u1.id]]);
+}
+
 // ── Cambios incrementales ────────────────────────────────────────────────
 //
 // Los archivos de supabase/cambios/ son lo que se pega en la base publicada.

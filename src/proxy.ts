@@ -22,7 +22,14 @@ import { NextResponse, type NextRequest } from "next/server";
 const COOKIE_SESION = "goldhub_sesion";
 
 /** Accesibles sin sesión. */
-const RUTAS_PUBLICAS = ["/login"];
+/*
+ * `/sw.js` es el Service Worker de las notificaciones. Va aquí porque el
+ * navegador lo pide SIN cookies —es una petición del propio navegador, no de
+ * la página—, así que con sesión exigida devolvía una redirección al login y
+ * el worker no llegaba a registrarse nunca. No expone nada: solo sabe enseñar
+ * un aviso que ya viene cifrado desde el servidor.
+ */
+const RUTAS_PUBLICAS = ["/login", "/sw.js"];
 
 /**
  * Cara pública del vale: es lo que abre quien recibe el WhatsApp, y lo que

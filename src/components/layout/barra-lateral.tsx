@@ -116,8 +116,22 @@ export function BarraLateral({
                       <Rombo activo={esActivo} />
                       <span className="flex-1 text-left">{item.nombre}</span>
                       {insignia ? (
-                        <span className="bg-taupe/16 text-taupe-light rounded-[9px] px-[7px] py-[2px] text-[9px] font-semibold tracking-[0.08em]">
-                          {insignia}
+                        /*
+                         * El chat va en un tono que salta a la vista y el
+                         * resto en el discreto de siempre: un contador de
+                         * vales es un dato, pero un mensaje sin leer es algo
+                         * que alguien está esperando que respondas.
+                         */
+                        <span
+                          className={
+                            item.nombre === "Chat"
+                              ? "bg-taupe-light text-ink flex min-w-[19px] items-center justify-center rounded-full px-[6px] py-[2px] text-[10px] font-bold"
+                              : "bg-taupe/16 text-taupe-light rounded-[9px] px-[7px] py-[2px] text-[9px] font-semibold tracking-[0.08em]"
+                          }
+                        >
+                          {/* Por encima de 99 el número no cabe y tampoco
+                              aporta: lo que importa es que hay muchos. */}
+                          {insignia > 99 ? "99+" : insignia}
                         </span>
                       ) : null}
                     </Link>

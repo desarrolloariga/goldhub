@@ -24,7 +24,14 @@ const ICONOS: Record<NonNullable<ItemNav["icono"]>, LucideIcon> = {
   chat: MessageSquare,
 };
 
-export function BarraMovil({ rol }: { rol: RolUsuario }) {
+export function BarraMovil({
+  rol,
+  contadores = {},
+}: {
+  rol: RolUsuario;
+  /** Insignias por nombre de item, igual que en la barra lateral. */
+  contadores?: Record<string, number>;
+}) {
   const pathname = usePathname();
   const activo = itemActivo(pathname);
   const items = accesosMoviles(rol);
@@ -37,6 +44,7 @@ export function BarraMovil({ rol }: { rol: RolUsuario }) {
       {items.map((item) => {
         const Icono = ICONOS[item.icono ?? "inicio"];
         const esActivo = activo?.href === item.href;
+        const insignia = contadores[item.nombre];
         return (
           <Link
             key={item.href}
@@ -47,7 +55,17 @@ export function BarraMovil({ rol }: { rol: RolUsuario }) {
               esActivo ? "text-taupe-dark" : "text-ink/45",
             )}
           >
-            <Icono size={19} strokeWidth={esActivo ? 2.2 : 1.7} />
+            {/* La burbuja va pegada al icono y no al lado del texto: en la
+                barra inferior el nombre queda muy abajo y un número ahí se
+                pierde entre las cinco etiquetas. */}
+            <span className="relative flex">
+              <Icono size={19} strokeWidth={esActivo ? 2.2 : 1.7} />
+              {insignia ? (
+                <span className="bg-clay absolute -top-[6px] -right-[9px] flex min-w-[16px] items-center justify-center rounded-full px-[4px] py-[1px] text-[9px] font-bold text-white">
+                  {insignia > 99 ? "99+" : insignia}
+                </span>
+              ) : null}
+            </span>
             {item.nombre}
           </Link>
         );

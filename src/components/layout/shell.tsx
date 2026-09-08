@@ -53,7 +53,7 @@ export function Shell({
         </div>
       </main>
 
-      <BarraMovil rol={usuario.rol} />
+      <BarraMovil rol={usuario.rol} contadores={contadores} />
     </div>
   );
 }

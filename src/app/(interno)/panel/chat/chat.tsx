@@ -4,10 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ImagePlus, MessageSquare, Search, Send, Settings2, Users, X } from "lucide-react";
 
-import { enviarImagen, enviarMensaje, marcarLeido } from "@/lib/acciones/chat";
+import {
+  enviarImagen,
+  enviarMensaje,
+  guardarSuscripcionPush,
+  marcarLeido,
+} from "@/lib/acciones/chat";
 import type { Contacto, Conversacion, Mensaje } from "@/lib/datos/chat";
 
-import { avisar, pedirPermiso } from "./avisos";
+import { activarPush, avisar, pedirPermiso } from "./avisos";
 import { NuevaConversacion } from "./nueva";
 import { PanelGrupo, type Participante } from "./grupo";
 
@@ -168,7 +173,10 @@ export function Chat({
   // El permiso se pide al entrar al chat, no al cargar el panel: pedirlo
   // antes de que se vea para qué es la forma más rápida de que lo denieguen.
   useEffect(() => {
-    void pedirPermiso();
+    void (async () => {
+      // El push solo tiene sentido si hay permiso, así que va detrás.
+      if (await pedirPermiso()) await activarPush(guardarSuscripcionPush);
+    })();
   }, []);
 
   const visibles = lista.filter((c) =>

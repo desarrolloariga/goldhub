@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { requerirSesion } from "@/lib/auth/guardas";
 import { db } from "@/lib/supabase/server";
+import { avisarConversacion } from "@/lib/push";
 import { randomBytes } from "node:crypto";
 import sharp from "sharp";
 
@@ -92,6 +93,17 @@ export async function enviarMensaje(
   });
 
   if (error) return { error: traducir(error, "No se pudo enviar el mensaje.") };
+
+  /*
+   * El aviso va después de guardar y sin `await` que pueda romper nada: si
+   * el push falla, el mensaje ya está a salvo y lo peor que pasa es que
+   * alguien lo vea al abrir el chat.
+   */
+  await avisarConversacion(r.data.conversacionId, sesion.usuarioId, {
+    titulo: sesion.nombre,
+    cuerpo: r.data.cuerpo.slice(0, 140),
+    url: `/panel/chat?c=${r.data.conversacionId}`,
+  });
 
   revalidatePath("/panel/chat");
   return { ok: true };
@@ -267,6 +279,12 @@ export async function enviarImagen(
     return { error: traducir(error, "No se pudo enviar la imagen.") };
   }
 
+  await avisarConversacion(conversacionId, sesion.usuarioId, {
+    titulo: sesion.nombre,
+    cuerpo: pie || "Te envió una imagen",
+    url: `/panel/chat?c=${conversacionId}`,
+  });
+
   revalidatePath("/panel/chat");
   return { ok: true };
 }
@@ -354,4 +372,38 @@ export async function quitarParticipante(
 
   revalidatePath("/panel/chat");
   return { ok: true };
+}
+
+/**
+ * Registra el dispositivo para recibir avisos con el navegador cerrado.
+ *
+ * Se llama cada vez que se entra al chat, no solo la primera: los servicios
+ * de push renuevan la suscripción por su cuenta, y guardarla solo al dar
+ * permiso dejaría al dispositivo mudo el día que cambiara.
+ */
+export async function guardarSuscripcionPush(
+  endpoint: string,
+  p256dh: string,
+  auth: string,
+  userAgent?: string,
+): Promise<{ ok: boolean }> {
+  const sesion = await requerirSesion();
+
+  if (!endpoint || !p256dh || !auth) return { ok: false };
+
+  const { error } = await db().rpc("fn_guardar_push", {
+    p_usuario_id: sesion.usuarioId,
+    p_endpoint: endpoint,
+    p_clave_p256dh: p256dh,
+    p_clave_auth: auth,
+    p_user_agent: userAgent ?? null,
+  });
+
+  return { ok: !error };
+}
+
+/** Da de baja el dispositivo. Se llama al revocar el permiso. */
+export async function borrarSuscripcionPush(endpoint: string): Promise<void> {
+  await requerirSesion();
+  await db().rpc("fn_borrar_push", { p_endpoint: endpoint });
 }

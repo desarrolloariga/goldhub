@@ -119,3 +119,80 @@ export function avisar(autor: string, cuerpo: string) {
     // campana ya sonó, que es lo que de verdad avisa.
   }
 }
+
+/* ── Notificaciones con el navegador cerrado ─────────────────────────── */
+
+/**
+ * Convierte la clave pública VAPID de base64url a los bytes que espera el
+ * navegador. `applicationServerKey` no admite la cadena tal cual.
+ */
+function clavePublicaABytes(base64url: string): ArrayBuffer {
+  const relleno = "=".repeat((4 - (base64url.length % 4)) % 4);
+  const base64 = (base64url + relleno).replace(/-/g, "+").replace(/_/g, "/");
+  const crudo = atob(base64);
+
+  // Se devuelve el `ArrayBuffer` y no la vista: `applicationServerKey` exige
+  // un búfer respaldado por memoria propia, y un `Uint8Array` genérico no lo
+  // garantiza.
+  const bytes = new Uint8Array(crudo.length);
+  for (let i = 0; i < crudo.length; i++) bytes[i] = crudo.charCodeAt(i);
+  return bytes.buffer;
+}
+
+/**
+ * Registra el Service Worker y suscribe el dispositivo a los avisos.
+ *
+ * Se llama en cada entrada al chat y no solo la primera vez: los servicios
+ * de push renuevan las suscripciones por su cuenta, y guardarla una sola vez
+ * dejaría el dispositivo mudo el día que cambiara.
+ *
+ * Devuelve `false` en silencio si el navegador no lo soporta, si falta la
+ * clave o si no hay permiso. Es una mejora, no un requisito: sin esto el
+ * chat sigue avisando con la pestaña abierta.
+ */
+export async function activarPush(
+  guardar: (
+    endpoint: string,
+    p256dh: string,
+    auth: string,
+    userAgent?: string,
+  ) => Promise<{ ok: boolean }>,
+): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
+
+  const clave = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  if (!clave) return false;
+  if (Notification.permission !== "granted") return false;
+
+  try {
+    const registro = await navigator.serviceWorker.register("/sw.js");
+    // `ready` espera a que esté activo: suscribirse antes falla en algunos
+    // navegadores sin decir por qué.
+    await navigator.serviceWorker.ready;
+
+    const existente = await registro.pushManager.getSubscription();
+    const suscripcion =
+      existente ??
+      (await registro.pushManager.subscribe({
+        // Obligatorio en todos los navegadores modernos: no se admiten
+        // suscripciones que puedan usarse para avisos silenciosos.
+        userVisibleOnly: true,
+        applicationServerKey: clavePublicaABytes(clave),
+      }));
+
+    const datos = suscripcion.toJSON();
+    if (!datos.endpoint || !datos.keys?.p256dh || !datos.keys?.auth) return false;
+
+    const r = await guardar(
+      datos.endpoint,
+      datos.keys.p256dh,
+      datos.keys.auth,
+      navigator.userAgent.slice(0, 200),
+    );
+    return r.ok;
+  } catch {
+    // Sin Service Worker el chat sigue funcionando: no se avisa de esto.
+    return false;
+  }
+}

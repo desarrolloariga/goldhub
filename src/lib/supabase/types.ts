@@ -129,6 +129,28 @@ export type Database = {
         Update: { cuerpo?: string };
         Relationships: [];
       };
+      push_suscripciones: {
+        Row: {
+          id: number;
+          usuario_id: number;
+          endpoint: string;
+          clave_p256dh: string;
+          clave_auth: string;
+          user_agent: string | null;
+          ultimo_fallo: string | null;
+          fallos: number;
+          fecha_creacion: string;
+        };
+        Insert: {
+          usuario_id: number;
+          endpoint: string;
+          clave_p256dh: string;
+          clave_auth: string;
+          user_agent?: string | null;
+        };
+        Update: { fallos?: number; ultimo_fallo?: string | null };
+        Relationships: [];
+      };
       usuarios: {
         Row: {
           id: number;
@@ -733,6 +755,30 @@ export type Database = {
           tienda: string | null;
           es_creador: boolean;
         }[];
+      };
+      fn_destinos_push: {
+        Args: { p_conversacion_id: number; p_autor_id: number };
+        Returns: {
+          id: number;
+          usuario_id: number;
+          endpoint: string;
+          clave_p256dh: string;
+          clave_auth: string;
+        }[];
+      };
+      fn_guardar_push: {
+        Args: {
+          p_usuario_id: number;
+          p_endpoint: string;
+          p_clave_p256dh: string;
+          p_clave_auth: string;
+          p_user_agent?: string | null;
+        };
+        Returns: number;
+      };
+      fn_borrar_push: {
+        Args: { p_endpoint: string };
+        Returns: undefined;
       };
       fn_bandeja: {
         Args: { p_usuario_id: number };

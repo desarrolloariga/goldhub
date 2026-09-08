@@ -224,15 +224,16 @@ export function Chat({
 
     setTexto("");
     soltarImagen();
-    const desde = mensajes.length ? mensajes[mensajes.length - 1].id : 0;
-    const res = await fetch(`/api/chat/mensajes?c=${abierta}&desde=${desde}`, {
-      cache: "no-store",
-    });
-    if (res.ok) {
-      const nuevos: Mensaje[] = await res.json();
-      setMensajes((previos) => [...previos, ...nuevos]);
-      if (nuevos.length) setUltimoAvisado(nuevos[nuevos.length - 1].id);
-    }
+
+    /*
+     * No se pide el mensaje recién enviado: lo trae el flujo, que llega en
+     * menos de dos segundos y filtra por id.
+     *
+     * Antes se pedía aquí además, y el mensaje entraba dos veces —una por
+     * cada vía— porque esta no comprobaba si ya estaba. Una sola puerta de
+     * entrada para los mensajes es también una regla más fácil de sostener
+     * que dos que tienen que ponerse de acuerdo.
+     */
     router.refresh();
   }
 

@@ -9,7 +9,7 @@ import { ChipTipo } from "@/components/vales/chip-tipo";
 import { TarjetaVale } from "@/components/vales/tarjeta-vale";
 
 import { AccionesAdmin } from "./acciones-admin";
-import { requerirSesion } from "@/lib/auth/guardas";
+import { alcanceDe, requerirSesion } from "@/lib/auth/guardas";
 import { redencionesDeVale } from "@/lib/datos/redenciones";
 import { valePorCodigo } from "@/lib/datos/vales";
 import { fecha, fechaHora, moneda } from "@/lib/format";
@@ -37,8 +37,19 @@ export default async function PaginaVale({
 
   if (!vale) notFound();
 
-  // Una tienda solo ve los vales que emitió ella.
-  if (sesion.rol !== "admin" && vale.usuario_id !== sesion.usuarioId) {
+  /*
+   * Una tienda ve los vales de SU tienda, que no es lo mismo que los que
+   * emitió su cuenta.
+   *
+   * Antes se comparaba contra `usuario_id` —quién lo emitió— y eso dejaba
+   * fuera los A3: los crea el visitante escaneando el QR del mostrador, sin
+   * que nadie de la tienda intervenga, así que no tienen emisor. La ficha
+   * respondía «no encontramos esta página» para vales que sí eran suyos y
+   * que además salían en su propio listado, porque aquel sí filtra por
+   * tienda. Mismo criterio en los dos sitios.
+   */
+  const alcance = alcanceDe(sesion);
+  if (alcance !== null && vale.tienda_id !== alcance) {
     notFound();
   }
 

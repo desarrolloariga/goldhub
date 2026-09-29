@@ -151,6 +151,31 @@ export type Database = {
         Update: { fallos?: number; ultimo_fallo?: string | null };
         Relationships: [];
       };
+      ventas_directas: {
+        Row: {
+          id: number;
+          tienda_id: number;
+          usuario_id: number | null;
+          /** El día de la venta, que puede no ser el de la captura. */
+          dia: string;
+          monto_oro: number;
+          monto_plata: number;
+          nota: string | null;
+          registrada_por: number | null;
+          editada_por: number | null;
+          fecha_edicion: string | null;
+          fecha_creacion: string;
+        };
+        Insert: {
+          tienda_id: number;
+          dia: string;
+          monto_oro?: number;
+          monto_plata?: number;
+          nota?: string | null;
+        };
+        Update: { monto_oro?: number; monto_plata?: number; nota?: string | null };
+        Relationships: [];
+      };
       usuarios: {
         Row: {
           id: number;
@@ -681,6 +706,69 @@ export type Database = {
       fn_normalizar_telefono: { Args: { p_telefono: string }; Returns: string | null };
       fn_purgar_sesiones: { Args: Record<string, never>; Returns: number };
 
+      fn_registrar_venta_directa: {
+        Args: {
+          p_usuario_id: number;
+          p_tienda_id?: number | null;
+          p_dia?: string | null;
+          p_monto_oro?: number;
+          p_monto_plata?: number;
+          p_nota?: string | null;
+        };
+        Returns: { id: number; tienda_id: number; dia: string };
+      };
+      fn_eliminar_venta_directa: {
+        Args: { p_usuario_id: number; p_venta_id: number };
+        Returns: undefined;
+      };
+      fn_ventas_directas: {
+        Args: {
+          p_tienda_id?: number | null;
+          p_desde?: string | null;
+          p_hasta?: string | null;
+        };
+        Returns: {
+          id: number;
+          tienda_id: number;
+          tienda: string;
+          dia: string;
+          monto_oro: number;
+          monto_plata: number;
+          total: number;
+          nota: string | null;
+          registrada: string | null;
+          fecha_creacion: string;
+        }[];
+      };
+      fn_ventas_consolidado: {
+        Args: VentasArgs;
+        Returns: {
+          vale_bruta: number;
+          vale_descuento: number;
+          vale_neta: number;
+          directa_oro: number;
+          directa_plata: number;
+          directa_total: number;
+          gran_total: number;
+          tickets_vale: number;
+          registros_directa: number;
+        }[];
+      };
+      fn_consolidado_por_tienda: {
+        Args: { p_desde?: string | null; p_hasta?: string | null };
+        Returns: {
+          tienda_id: number;
+          tienda: string;
+          asesora: string | null;
+          vale_bruta: number;
+          vale_descuento: number;
+          vale_neta: number;
+          directa_oro: number;
+          directa_plata: number;
+          directa_total: number;
+          gran_total: number;
+        }[];
+      };
       fn_ventas_resumen: {
         Args: VentasArgs;
         Returns: {

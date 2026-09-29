@@ -104,3 +104,84 @@ export async function mapaDeCalor(rango: RangoVentas = {}) {
   if (error) throw new Error(`No se pudo leer el mapa de calor: ${error.message}`);
   return (data ?? []) as CeldaCalor[];
 }
+
+/* ── Venta sin vale ──────────────────────────────────────────────────── */
+
+export type VentaDirecta = {
+  id: number;
+  tienda_id: number;
+  tienda: string;
+  dia: string;
+  monto_oro: number;
+  monto_plata: number;
+  total: number;
+  nota: string | null;
+  registrada: string | null;
+  fecha_creacion: string;
+};
+
+/** Los cuatro totales que pide el tablero. */
+export type Consolidado = {
+  vale_bruta: number;
+  vale_descuento: number;
+  vale_neta: number;
+  directa_oro: number;
+  directa_plata: number;
+  directa_total: number;
+  /** La neta con vale más la venta sin vale: lo que entró en caja. */
+  gran_total: number;
+  tickets_vale: number;
+  registros_directa: number;
+};
+
+export type ConsolidadoTienda = {
+  tienda_id: number;
+  tienda: string;
+  asesora: string | null;
+  vale_bruta: number;
+  vale_descuento: number;
+  vale_neta: number;
+  directa_oro: number;
+  directa_plata: number;
+  directa_total: number;
+  gran_total: number;
+};
+
+const CONSOLIDADO_VACIO: Consolidado = {
+  vale_bruta: 0,
+  vale_descuento: 0,
+  vale_neta: 0,
+  directa_oro: 0,
+  directa_plata: 0,
+  directa_total: 0,
+  gran_total: 0,
+  tickets_vale: 0,
+  registros_directa: 0,
+};
+
+export async function consolidado(rango: RangoVentas = {}) {
+  const { data, error } = await db().rpc("fn_ventas_consolidado", argumentos(rango));
+  if (error) throw new Error(`No se pudo leer el consolidado: ${error.message}`);
+  return (data?.[0] ?? CONSOLIDADO_VACIO) as Consolidado;
+}
+
+export async function consolidadoPorTienda(
+  rango: Pick<RangoVentas, "desde" | "hasta"> = {},
+) {
+  const { data, error } = await db().rpc("fn_consolidado_por_tienda", {
+    p_desde: rango.desde ?? null,
+    p_hasta: rango.hasta ?? null,
+  });
+  if (error) throw new Error(`No se pudo leer el consolidado: ${error.message}`);
+  return (data ?? []) as ConsolidadoTienda[];
+}
+
+export async function ventasDirectas(rango: RangoVentas = {}) {
+  const { data, error } = await db().rpc("fn_ventas_directas", {
+    p_tienda_id: rango.tiendaId ?? null,
+    p_desde: rango.desde ?? null,
+    p_hasta: rango.hasta ?? null,
+  });
+  if (error) throw new Error(`No se pudieron leer las ventas: ${error.message}`);
+  return (data ?? []) as VentaDirecta[];
+}

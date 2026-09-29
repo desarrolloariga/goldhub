@@ -590,6 +590,101 @@ afirmar(
   );
 }
 
+// ── Venta sin vale ───────────────────────────────────────────────────────
+console.log("\nVenta sin vale");
+
+{
+  const antes = await uno(
+    `select * from smartvalehubgold.fn_ventas_consolidado()`);
+
+  const v = await uno(
+    `select * from smartvalehubgold.fn_registrar_venta_directa($1,null,null,1000,500,'Mostrador')`,
+    [u1.id]);
+  afirmar("se registra una venta sin vale con oro y plata",
+    Number(v.monto_oro) === 1000 && Number(v.monto_plata) === 500,
+    `${v.monto_oro} / ${v.monto_plata}`);
+  afirmar("y la tienda la pone la cuenta, no el formulario",
+    v.tienda_id === t1.id, String(v.tienda_id));
+
+  await rechaza("una venta de cero no se registra", "SV006",
+    `select smartvalehubgold.fn_registrar_venta_directa($1,null,null,0,0)`,
+    [u1.id]);
+  await rechaza("ni con fecha futura", "SV006",
+    `select smartvalehubgold.fn_registrar_venta_directa($1,null,
+       ((now() at time zone 'America/Guatemala')::date + 5),100,0)`,
+    [u1.id]);
+
+  // Los cuatro totales, que es lo que se mira en el tablero.
+  const c = await uno(`select * from smartvalehubgold.fn_ventas_consolidado()`);
+  afirmar(
+    "la venta sin vale suma oro y plata",
+    Number(c.directa_total) === Number(c.directa_oro) + Number(c.directa_plata),
+    `${c.directa_oro} + ${c.directa_plata} = ${c.directa_total}`,
+  );
+  afirmar(
+    "la neta con vale sigue siendo bruta menos descuento",
+    Number(c.vale_neta) === Number(c.vale_bruta) - Number(c.vale_descuento),
+    String(c.vale_neta),
+  );
+  afirmar(
+    "y el gran total es la neta más la venta sin vale",
+    Number(c.gran_total) === Number(c.vale_neta) + Number(c.directa_total),
+    `${c.vale_neta} + ${c.directa_total} = ${c.gran_total}`,
+  );
+  afirmar(
+    "la venta sin vale no toca las cifras de los vales",
+    Number(c.vale_bruta) === Number(antes.vale_bruta),
+    `${antes.vale_bruta} -> ${c.vale_bruta}`,
+  );
+
+  // Por tienda: cada fila cuadra y la suma da el total general.
+  {
+    const filas = (
+      await db.query(`select * from smartvalehubgold.fn_consolidado_por_tienda()`)
+    ).rows;
+    const cuadran = filas.every(
+      (f) =>
+        Math.abs(
+          Number(f.gran_total) -
+            (Number(f.vale_neta) + Number(f.directa_total)),
+        ) < 0.01,
+    );
+    const suma = filas.reduce((a, f) => a + Number(f.gran_total), 0);
+    afirmar("cada tienda cuadra su gran total", filas.length > 0 && cuadran,
+      `${filas.length} tiendas`);
+    afirmar("y la suma de las tiendas es el total general",
+      Math.abs(suma - Number(c.gran_total)) < 0.01,
+      `${suma} vs ${c.gran_total}`);
+  }
+
+  // Una tienda que solo vendió sin vale tiene que salir igual: con un `join`
+  // en vez de `left join` desaparecería del reporte.
+  {
+    const t4 = await uno(
+      `insert into smartvalehubgold.tiendas (nombre, prefijo)
+       values ('Solo Directa', 'SOL') returning *`);
+    const u4 = await uno(
+      `insert into smartvalehubgold.usuarios (nombre, correo, contrasena_hash, rol, tienda_id)
+       values ('Directa', 'directa', 'x', 'tienda', $1) returning *`, [t4.id]);
+    await db.query(
+      `select smartvalehubgold.fn_registrar_venta_directa($1,null,null,777,0)`,
+      [u4.id]);
+
+    const filas = (
+      await db.query(`select * from smartvalehubgold.fn_consolidado_por_tienda()`)
+    ).rows;
+    const suya = filas.find((f) => f.tienda_id === t4.id);
+    afirmar(
+      "una tienda sin redenciones sale si vendió sin vale",
+      suya !== undefined && Number(suya.gran_total) === 777,
+      suya ? String(suya.gran_total) : "no aparece",
+    );
+  }
+
+  await rechaza("una tienda no borra la venta de otra", "SV012",
+    `select smartvalehubgold.fn_eliminar_venta_directa($1,$2)`, [u2.id, v.id]);
+}
+
 // ── Chat ─────────────────────────────────────────────────────────────────
 console.log("\nChat interno");
 

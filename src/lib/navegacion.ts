@@ -11,7 +11,14 @@ export type ItemNav = {
   /** Título de la cabecera si difiere del nombre del menú. */
   titulo?: string;
   /** Nombre del icono de lucide-react usado en la barra inferior móvil. */
-  icono?: "inicio" | "emitir" | "redimir" | "vales" | "redenciones" | "chat";
+  icono?:
+    | "inicio"
+    | "emitir"
+    | "redimir"
+    | "vales"
+    | "redenciones"
+    | "chat"
+    | "ventas";
   /** Aparece en la barra inferior del móvil. */
   destacado?: boolean;
 };
@@ -54,6 +61,16 @@ export const NAVEGACION: GrupoNav[] = [
         nombre: "Redenciones",
         href: "/panel/redenciones",
         icono: "redenciones",
+      },
+      /*
+       * La venta que no lleva vale. Va junto a las demás de operación y no
+       * en reportes: se captura a diario en caja, igual que una redención.
+       */
+      {
+        nombre: "Venta sin vale",
+        href: "/panel/ventas",
+        titulo: "Venta sin vale",
+        icono: "ventas",
       },
       /*
        * Va en OPERACIÓN y no en un grupo propio: lo usan todas las cuentas,

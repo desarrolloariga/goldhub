@@ -4,7 +4,7 @@ import { Download } from "lucide-react";
 import { Tarjeta } from "@/components/ui/tarjeta";
 import { PestanasReportes } from "@/components/reportes/pestanas";
 import { requerirAdmin } from "@/lib/auth/guardas";
-import { ventasPorTienda, type RangoVentas } from "@/lib/datos/ventas";
+import { consolidado, consolidadoPorTienda } from "@/lib/datos/ventas";
 import { fecha, moneda } from "@/lib/format";
 import { rangoPedido } from "@/lib/rango-fechas";
 
@@ -38,9 +38,11 @@ export default async function PaginaReporteTiendas({
   const hastaParam = texto(params.hasta);
 
   const { desde, hasta } = rangoPedido(atajo, desdeParam, hastaParam);
-  const rango: RangoVentas = { desde, hasta, tiendaId: null };
 
-  const filas = await ventasPorTienda(rango);
+  const [filas, totales] = await Promise.all([
+    consolidadoPorTienda({ desde, hasta }),
+    consolidado({ desde, hasta, tiendaId: null }),
+  ]);
 
   /*
    * Los totales se suman aquí sobre las mismas filas que se pintan, no con
@@ -51,12 +53,15 @@ export default async function PaginaReporteTiendas({
    */
   const total = filas.reduce(
     (a, f) => ({
-      tickets: a.tickets + f.tickets,
-      venta: a.venta + Number(f.venta),
-      descuento: a.descuento + Number(f.descuento),
-      neta: a.neta + Number(f.venta_neta),
+      bruta: a.bruta + Number(f.vale_bruta),
+      descuento: a.descuento + Number(f.vale_descuento),
+      neta: a.neta + Number(f.vale_neta),
+      oro: a.oro + Number(f.directa_oro),
+      plata: a.plata + Number(f.directa_plata),
+      directa: a.directa + Number(f.directa_total),
+      gran: a.gran + Number(f.gran_total),
     }),
-    { tickets: 0, venta: 0, descuento: 0, neta: 0 },
+    { bruta: 0, descuento: 0, neta: 0, oro: 0, plata: 0, directa: 0, gran: 0 },
   );
 
   const periodo =
@@ -99,6 +104,70 @@ export default async function PaginaReporteTiendas({
 
       <FiltroFechas atajo={atajo} desde={desdeParam} hasta={hastaParam} />
 
+      {/*
+        Los cuatro totales, antes de la tabla. Vienen de la base y no de
+        sumar las filas: son la misma consulta que usa el resto del sistema,
+        y así una diferencia entre estas cifras y la suma de abajo delataría
+        un problema real en vez de esconderlo.
+      */}
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {(
+          [
+            [
+              "BRUTA CON VALES",
+              moneda(Number(totales.vale_bruta)),
+              "antes del descuento",
+              false,
+            ],
+            [
+              "NETA CON VALES",
+              moneda(Number(totales.vale_neta)),
+              `menos ${moneda(Number(totales.vale_descuento))} de comisiones`,
+              false,
+            ],
+            [
+              "VENTAS NORMALES",
+              moneda(Number(totales.directa_total)),
+              `oro ${moneda(Number(totales.directa_oro))} · plata ${moneda(Number(totales.directa_plata))}`,
+              false,
+            ],
+            [
+              "GRAN TOTAL",
+              moneda(Number(totales.gran_total)),
+              "neta con vales + ventas normales",
+              true,
+            ],
+          ] as [string, string, string, boolean][]
+        ).map(([etiqueta, valor, nota, destacado]) => (
+          <div
+            key={etiqueta}
+            className={`rounded-card flex flex-col gap-[6px] border p-4 ${
+              destacado
+                ? "border-taupe/40 bg-taupe/8"
+                : "border-ink/8 bg-paper"
+            }`}
+          >
+            <span
+              className={`text-[9px] font-medium tracking-[0.18em] ${
+                destacado ? "text-taupe-dark" : "text-ink/42"
+              }`}
+            >
+              {etiqueta}
+            </span>
+            <span
+              className={`leading-none font-medium tabular-nums ${
+                destacado
+                  ? "font-display text-taupe-deep text-[26px]"
+                  : "text-ink text-[20px]"
+              }`}
+            >
+              {valor}
+            </span>
+            <span className="text-ink/45 text-[11px] leading-snug">{nota}</span>
+          </div>
+        ))}
+      </div>
+
       <Tarjeta className="overflow-hidden p-0">
         {filas.length === 0 ? (
           <p className="text-ink/45 m-0 py-12 text-center text-[13px]">
@@ -115,10 +184,13 @@ export default async function PaginaReporteTiendas({
                     [
                       ["TIENDA", "left"],
                       ["ASESORA", "left"],
-                      ["COMPRAS", "right"],
-                      ["VENTA BRUTA", "right"],
+                      ["BRUTA C/VALE", "right"],
                       ["COMISIONES", "right"],
-                      ["VENTA NETA", "right"],
+                      ["NETA C/VALE", "right"],
+                      ["ORO", "right"],
+                      ["PLATA", "right"],
+                      ["SIN VALE", "right"],
+                      ["GRAN TOTAL", "right"],
                     ] as const
                   ).map(([t, alinea]) => (
                     <th
@@ -146,16 +218,27 @@ export default async function PaginaReporteTiendas({
                       {f.asesora ?? "—"}
                     </td>
                     <td className="text-ink/70 px-4 py-[11px] text-right tabular-nums">
-                      {f.tickets}
-                    </td>
-                    <td className="text-ink px-4 py-[11px] text-right tabular-nums">
-                      {moneda(Number(f.venta))}
+                      {moneda(Number(f.vale_bruta))}
                     </td>
                     <td className="text-taupe-deep px-4 py-[11px] text-right tabular-nums">
-                      {moneda(Number(f.descuento))}
+                      {moneda(Number(f.vale_descuento))}
                     </td>
-                    <td className="text-ink px-4 py-[11px] text-right font-medium tabular-nums">
-                      {moneda(Number(f.venta_neta))}
+                    <td className="text-ink px-4 py-[11px] text-right tabular-nums">
+                      {moneda(Number(f.vale_neta))}
+                    </td>
+                    {/* El oro y la plata en gris: son el desglose de la
+                        columna siguiente, no cifras que se sumen aparte. */}
+                    <td className="text-ink/55 px-4 py-[11px] text-right tabular-nums">
+                      {moneda(Number(f.directa_oro))}
+                    </td>
+                    <td className="text-ink/55 px-4 py-[11px] text-right tabular-nums">
+                      {moneda(Number(f.directa_plata))}
+                    </td>
+                    <td className="text-ink px-4 py-[11px] text-right tabular-nums">
+                      {moneda(Number(f.directa_total))}
+                    </td>
+                    <td className="text-ink px-4 py-[11px] text-right font-semibold tabular-nums">
+                      {moneda(Number(f.gran_total))}
                     </td>
                   </tr>
                 ))}
@@ -173,18 +256,26 @@ export default async function PaginaReporteTiendas({
                       {filas.length} tienda{filas.length === 1 ? "" : "s"}
                     </span>
                   </td>
-                  <td className="text-ink px-4 py-[13px] text-right font-semibold tabular-nums">
-                    {total.tickets}
-                  </td>
-                  <td className="text-ink px-4 py-[13px] text-right font-semibold tabular-nums">
-                    {moneda(total.venta)}
-                  </td>
-                  <td className="text-taupe-deep px-4 py-[13px] text-right font-semibold tabular-nums">
-                    {moneda(total.descuento)}
-                  </td>
-                  <td className="text-ink px-4 py-[13px] text-right font-semibold tabular-nums">
-                    {moneda(total.neta)}
-                  </td>
+                  {(
+                    [
+                      total.bruta,
+                      total.descuento,
+                      total.neta,
+                      total.oro,
+                      total.plata,
+                      total.directa,
+                      total.gran,
+                    ] as number[]
+                  ).map((valor, i) => (
+                    <td
+                      key={i}
+                      className={`px-4 py-[13px] text-right font-semibold tabular-nums ${
+                        i === 6 ? "text-taupe-deep" : "text-ink"
+                      }`}
+                    >
+                      {moneda(valor)}
+                    </td>
+                  ))}
                 </tr>
               </tfoot>
             </table>
@@ -195,9 +286,11 @@ export default async function PaginaReporteTiendas({
       <p className="text-ink/40 m-0 text-[11.5px] leading-relaxed">
         Las <strong className="font-medium">comisiones</strong> son el
         descuento aplicado al cliente al redimir su vale: 20% con visa y 25%
-        por transferencia, o 15% y 20% en los vales A3. La{" "}
-        <strong className="font-medium">venta neta</strong> es lo que quedó en
-        caja después de ese descuento.
+        por transferencia, o 15% y 20% en los vales A3. Las{" "}
+        <strong className="font-medium">ventas normales</strong> son las que
+        la tienda hace sin vale, y no llevan descuento de campaña. El{" "}
+        <strong className="font-medium">gran total</strong> suma la venta
+        neta con vales y las normales: lo que de verdad entró en caja.
       </p>
     </>
   );

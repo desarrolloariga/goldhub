@@ -2,7 +2,7 @@ import ExcelJS from "exceljs";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { requerirAdmin } from "@/lib/auth/guardas";
-import { ventasPorTienda } from "@/lib/datos/ventas";
+import { consolidado, consolidadoPorTienda } from "@/lib/datos/ventas";
 import { ES_FECHA } from "@/lib/rango-fechas";
 
 export const runtime = "nodejs";
@@ -26,7 +26,10 @@ export async function GET(request: NextRequest) {
   const desde = ES_FECHA.test(crudoDesde) ? crudoDesde : null;
   const hasta = ES_FECHA.test(crudoHasta) ? crudoHasta : null;
 
-  const filas = await ventasPorTienda({ desde, hasta, tiendaId: null });
+  const [filas, totales] = await Promise.all([
+    consolidadoPorTienda({ desde, hasta }),
+    consolidado({ desde, hasta, tiendaId: null }),
+  ]);
 
   const libro = new ExcelJS.Workbook();
   libro.creator = "GOLD HUB SMART VALE";
@@ -37,10 +40,13 @@ export async function GET(request: NextRequest) {
   hoja.columns = [
     { header: "Tienda", key: "tienda", width: 26 },
     { header: "Asesora", key: "asesora", width: 30 },
-    { header: "Compras", key: "tickets", width: 10 },
-    { header: "Venta bruta", key: "venta", width: 16, style: { numFmt: MONEDA } },
-    { header: "Comisiones", key: "descuento", width: 16, style: { numFmt: MONEDA } },
-    { header: "Venta neta", key: "neta", width: 16, style: { numFmt: MONEDA } },
+    { header: "Bruta con vales", key: "bruta", width: 17, style: { numFmt: MONEDA } },
+    { header: "Comisiones", key: "descuento", width: 15, style: { numFmt: MONEDA } },
+    { header: "Neta con vales", key: "neta", width: 17, style: { numFmt: MONEDA } },
+    { header: "Sin vale · oro", key: "oro", width: 15, style: { numFmt: MONEDA } },
+    { header: "Sin vale · plata", key: "plata", width: 16, style: { numFmt: MONEDA } },
+    { header: "Ventas normales", key: "directa", width: 17, style: { numFmt: MONEDA } },
+    { header: "Gran total", key: "gran", width: 17, style: { numFmt: MONEDA } },
   ];
 
   hoja.getRow(1).font = { bold: true };
@@ -51,37 +57,36 @@ export async function GET(request: NextRequest) {
     hoja.addRow({
       tienda: f.tienda,
       asesora: f.asesora ?? "",
-      tickets: f.tickets,
-      venta: Number(f.venta),
-      descuento: Number(f.descuento),
-      neta: Number(f.venta_neta),
+      bruta: Number(f.vale_bruta),
+      descuento: Number(f.vale_descuento),
+      neta: Number(f.vale_neta),
+      oro: Number(f.directa_oro),
+      plata: Number(f.directa_plata),
+      directa: Number(f.directa_total),
+      gran: Number(f.gran_total),
     });
   }
 
   /*
-   * Los totales se suman sobre las mismas filas que se escriben, igual que
-   * en la pantalla. Y van como número y no como fórmula: una fórmula se
-   * rompe al copiar la hoja a otro libro o al abrirla en un programa que no
-   * sea Excel, y entonces el total desaparece sin avisar.
+   * Los totales salen de la misma consulta que usa la pantalla, no de sumar
+   * las filas de esta hoja: las dos vistas leen la misma cifra y no pueden
+   * discrepar.
+   *
+   * Y van como número, no como fórmula: una fórmula se rompe al copiar la
+   * hoja a otro libro o al abrirla en un programa que no sea Excel, y
+   * entonces el total desaparece sin avisar.
    */
   if (filas.length > 0) {
-    const total = filas.reduce(
-      (a, f) => ({
-        tickets: a.tickets + f.tickets,
-        venta: a.venta + Number(f.venta),
-        descuento: a.descuento + Number(f.descuento),
-        neta: a.neta + Number(f.venta_neta),
-      }),
-      { tickets: 0, venta: 0, descuento: 0, neta: 0 },
-    );
-
     const fila = hoja.addRow({
       tienda: "TOTAL",
       asesora: `${filas.length} tienda${filas.length === 1 ? "" : "s"}`,
-      tickets: total.tickets,
-      venta: total.venta,
-      descuento: total.descuento,
-      neta: total.neta,
+      bruta: Number(totales.vale_bruta),
+      descuento: Number(totales.vale_descuento),
+      neta: Number(totales.vale_neta),
+      oro: Number(totales.directa_oro),
+      plata: Number(totales.directa_plata),
+      directa: Number(totales.directa_total),
+      gran: Number(totales.gran_total),
     });
     fila.font = { bold: true };
     fila.border = { top: { style: "medium" } };
@@ -104,6 +109,14 @@ export async function GET(request: NextRequest) {
   hoja.addRow({
     tienda: "Comisiones",
     asesora: "Descuento aplicado al cliente al redimir su vale.",
+  });
+  hoja.addRow({
+    tienda: "Ventas normales",
+    asesora: "Venta sin vale, oro y plata. No lleva descuento de campaña.",
+  });
+  hoja.addRow({
+    tienda: "Gran total",
+    asesora: "Neta con vales + ventas normales: lo que entró en caja.",
   });
 
   const buffer = await libro.xlsx.writeBuffer();

@@ -81,10 +81,11 @@ export function Chat({
    *
    * Va como estado y no como `ref` porque se reinicia al cambiar de
    * conversación, y eso ocurre durante el render —donde un `ref` no se puede
-   * tocar—. Que provoque un repintado da igual: cambia una vez por mensaje
-   * recibido, no por fotograma.
+   * tocar—. Solo se escribe: el valor se lee dentro del propio actualizador,
+   * que es lo que evita que el efecto del flujo dependa de él y se
+   * reconecte con cada mensaje.
    */
-  const [ultimoAvisado, setUltimoAvisado] = useState(
+  const [, setUltimoAvisado] = useState(
     iniciales.length ? iniciales[iniciales.length - 1].id : 0,
   );
 

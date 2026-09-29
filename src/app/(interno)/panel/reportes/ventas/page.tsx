@@ -6,6 +6,7 @@ import { ColumnasDia } from "@/components/reportes/columnas-dia";
 import { MapaCalor } from "@/components/reportes/mapa-calor";
 import { PestanasReportes } from "@/components/reportes/pestanas";
 import { requerirAdmin } from "@/lib/auth/guardas";
+import { ES_FECHA, rangoDelAtajo, sumarDias } from "@/lib/rango-fechas";
 import { listarTiendas } from "@/lib/datos/tiendas";
 import {
   mapaDeCalor,
@@ -14,7 +15,7 @@ import {
   ventasPorTienda,
   type RangoVentas,
 } from "@/lib/datos/ventas";
-import { ZONA, fecha, moneda, monedaCorta } from "@/lib/format";
+import { fecha, moneda, monedaCorta } from "@/lib/format";
 
 import { FiltrosVentas } from "./filtros";
 
@@ -28,46 +29,7 @@ export const metadata: Metadata = { title: "Ventas" };
  * cuánto entró, qué día, a qué hora, dónde y de qué material.
  */
 
-/** Hoy en Guatemala, no en el servidor. */
-function hoyLocal() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: ZONA,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
 
-function sumarDias(iso: string, dias: number) {
-  const d = new Date(`${iso}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + dias);
-  return d.toISOString().slice(0, 10);
-}
-
-/** Traduce el atajo elegido a un par de fechas. */
-function rangoDelAtajo(atajo: string): { desde: string | null; hasta: string | null } {
-  const hoy = hoyLocal();
-
-  switch (atajo) {
-    case "hoy":
-      return { desde: hoy, hasta: hoy };
-    case "ayer": {
-      const ayer = sumarDias(hoy, -1);
-      return { desde: ayer, hasta: ayer };
-    }
-    case "7":
-      return { desde: sumarDias(hoy, -6), hasta: hoy };
-    case "mes":
-      return { desde: `${hoy.slice(0, 7)}-01`, hasta: hoy };
-    case "todo":
-      return { desde: null, hasta: null };
-    case "30":
-    default:
-      return { desde: sumarDias(hoy, -29), hasta: hoy };
-  }
-}
-
-const ES_FECHA = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
  * Rellena con ceros los días sin venta.

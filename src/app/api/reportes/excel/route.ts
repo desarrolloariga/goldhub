@@ -98,9 +98,17 @@ export async function GET() {
       { header: "Compras", key: "redenciones", width: 10 },
       { header: "Vales con compra", key: "conCompra", width: 17 },
       { header: "Conversión %", key: "conversion", width: 14, formato: PORCENTAJE },
-      { header: "Venta generada", key: "ingreso", width: 17, formato: MONEDA },
+      /*
+       * Las tres juntas y en ese orden: bruta, lo descontado y lo que quedó.
+       * «Venta generada» y «Descuento otorgado» ya estaban, pero separadas
+       * por el ticket promedio y sin la resta, así que nadie las leía como
+       * una cuenta. Con descuentos del 20% y 25% la diferencia entre la
+       * primera y la última no es un matiz.
+       */
+      { header: "Venta bruta", key: "ingreso", width: 17, formato: MONEDA },
+      { header: "Descuento", key: "descuento", width: 17, formato: MONEDA },
+      { header: "Venta neta", key: "ventaNeta", width: 17, formato: MONEDA },
       { header: "Ticket promedio", key: "ticket", width: 17, formato: MONEDA },
-      { header: "Descuento otorgado", key: "descuento", width: 19, formato: MONEDA },
       { header: "Venta por vale", key: "ventaPorVale", width: 16, formato: MONEDA },
       { header: "Correlativo actual", key: "correlativo", width: 18 },
       { header: "Última emisión", key: "ultimaEmision", width: 20 },
@@ -122,8 +130,12 @@ export async function GET() {
       conCompra: d.vales_con_compra,
       conversion: d.tasa_conversion === null ? null : Number(d.tasa_conversion),
       ingreso: Number(d.ingreso_generado),
-      ticket: d.ticket_promedio === null ? null : Number(d.ticket_promedio),
       descuento: Number(d.descuento_otorgado),
+      // La resta se hace aquí y no en una fórmula de Excel: una fórmula se
+      // rompe al copiar la hoja o al abrirla en otro programa.
+      ventaNeta:
+        Number(d.ingreso_generado) - Number(d.descuento_otorgado),
+      ticket: d.ticket_promedio === null ? null : Number(d.ticket_promedio),
       ventaPorVale: d.venta_por_vale === null ? null : Number(d.venta_por_vale),
       correlativo: d.correlativo_actual,
       ultimaEmision: d.ultima_emision ? new Date(d.ultima_emision) : null,

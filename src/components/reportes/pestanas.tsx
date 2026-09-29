@@ -11,6 +11,7 @@ import Link from "next/link";
 const PESTANAS = [
   { href: "/panel/reportes", nombre: "Campaña" },
   { href: "/panel/reportes/ventas", nombre: "Ventas" },
+  { href: "/panel/reportes/tiendas", nombre: "Por tienda" },
 ];
 
 export function PestanasReportes({ activa }: { activa: string }) {

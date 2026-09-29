@@ -21,8 +21,11 @@ export type RangoVentas = {
 
 export type ResumenVentas = {
   tickets: number;
+  /** Lo que el cliente compró, antes de descontar. */
   venta: number;
   descuento: number;
+  /** Lo que quedó en caja: la bruta menos el descuento. */
+  venta_neta: number;
   ticket_promedio: number | null;
   clientes: number;
   vales_usados: number;
@@ -35,6 +38,7 @@ export type VentaDia = {
   tickets: number;
   venta: number;
   descuento: number;
+  venta_neta: number;
 };
 
 export type VentaPorTienda = {
@@ -44,6 +48,8 @@ export type VentaPorTienda = {
   asesora: string | null;
   tickets: number;
   venta: number;
+  descuento: number;
+  venta_neta: number;
   ticket_promedio: number | null;
 };
 
@@ -58,6 +64,7 @@ const RESUMEN_VACIO: ResumenVentas = {
   tickets: 0,
   venta: 0,
   descuento: 0,
+  venta_neta: 0,
   ticket_promedio: null,
   clientes: 0,
   vales_usados: 0,

@@ -685,8 +685,11 @@ export type Database = {
         Args: VentasArgs;
         Returns: {
           tickets: number;
+          /** Lo que el cliente compró, antes de descontar. */
           venta: number;
           descuento: number;
+          /** Lo que quedó en caja: la bruta menos el descuento. */
+          venta_neta: number;
           ticket_promedio: number | null;
           clientes: number;
           vales_usados: number;
@@ -696,7 +699,13 @@ export type Database = {
       };
       fn_ventas_por_dia: {
         Args: VentasArgs;
-        Returns: { dia: string; tickets: number; venta: number; descuento: number }[];
+        Returns: {
+          dia: string;
+          tickets: number;
+          venta: number;
+          descuento: number;
+          venta_neta: number;
+        }[];
       };
       fn_abrir_directo: {
         Args: { p_usuario_id: number; p_otro_id: number };
@@ -805,6 +814,8 @@ export type Database = {
           asesora: string | null;
           tickets: number;
           venta: number;
+          descuento: number;
+          venta_neta: number;
           ticket_promedio: number | null;
         }[];
       };

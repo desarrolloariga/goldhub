@@ -478,8 +478,15 @@ create or replace function smartvalehubgold.fn_ventas_resumen(
 )
 returns table (
   tickets         integer,
+  /*
+   * La bruta es lo que el cliente compró; la neta, lo que la tienda cobró
+   * después del descuento. Se devuelven las dos y también el descuento,
+   * aunque `neta = venta - descuento`: que la resta la haga la base y no
+   * cada pantalla es lo que evita que dos sitios enseñen cifras distintas.
+   */
   venta           numeric,
   descuento       numeric,
+  venta_neta      numeric,
   ticket_promedio numeric,
   clientes        integer,
   vales_usados    integer,
@@ -494,6 +501,9 @@ as $$
     count(*)::integer,
     coalesce(sum(v.monto_oro), 0),
     coalesce(sum(v.descuento_aplicado), 0),
+    coalesce(sum(v.monto_oro), 0) - coalesce(sum(v.descuento_aplicado), 0),
+    -- El ticket promedio va sobre la bruta: es el tamaño de la compra, no
+    -- lo que quedó en caja.
     round(coalesce(sum(v.monto_oro), 0) / nullif(count(*), 0), 2),
     count(distinct v.contacto_id)::integer,
     count(distinct v.vale_id)::integer,
@@ -512,10 +522,11 @@ create or replace function smartvalehubgold.fn_ventas_por_dia(
   p_tienda_id bigint default null
 )
 returns table (
-  dia       date,
-  tickets   integer,
-  venta     numeric,
-  descuento numeric
+  dia        date,
+  tickets    integer,
+  venta      numeric,
+  descuento  numeric,
+  venta_neta numeric
 )
 language sql
 stable
@@ -525,7 +536,8 @@ as $$
     v.dia,
     count(*)::integer,
     coalesce(sum(v.monto_oro), 0),
-    coalesce(sum(v.descuento_aplicado), 0)
+    coalesce(sum(v.descuento_aplicado), 0),
+    coalesce(sum(v.monto_oro), 0) - coalesce(sum(v.descuento_aplicado), 0)
   from smartvalehubgold.vw_ventas v
   where (p_desde     is null or v.dia >= p_desde)
     and (p_hasta     is null or v.dia <= p_hasta)
@@ -550,6 +562,8 @@ returns table (
   asesora         text,
   tickets         integer,
   venta           numeric,
+  descuento       numeric,
+  venta_neta      numeric,
   ticket_promedio numeric
 )
 language sql
@@ -562,6 +576,8 @@ as $$
     t.asesora,
     count(*)::integer,
     coalesce(sum(v.monto_oro), 0),
+    coalesce(sum(v.descuento_aplicado), 0),
+    coalesce(sum(v.monto_oro), 0) - coalesce(sum(v.descuento_aplicado), 0),
     round(coalesce(sum(v.monto_oro), 0) / nullif(count(*), 0), 2)
   from smartvalehubgold.vw_ventas v
   join smartvalehubgold.tiendas t on t.id = v.tienda_id
@@ -569,6 +585,7 @@ as $$
     and (p_hasta     is null or v.dia <= p_hasta)
     and (p_tienda_id is null or v.tienda_id = p_tienda_id)
   group by v.tienda_id, v.tienda, t.asesora
+  -- Por venta bruta: es la que ordena por tamaño de operación.
   order by 5 desc;
 $$;
 

@@ -403,6 +403,38 @@ afirmar("el desempeño enlaza tienda y cuenta", desemp.cuenta === "Mazate");
 afirmar("y sabe si tiene logotipo", desemp.tiene_logo === false);
 
 const ventas = await uno(`select * from smartvalehubgold.fn_ventas_resumen()`);
+
+// La neta es lo que quedó en caja: la bruta menos lo descontado. La resta la
+// hace la base para que dos pantallas no puedan enseñar cifras distintas.
+afirmar(
+  "la venta neta es la bruta menos el descuento",
+  Number(ventas.venta_neta) ===
+    Number(ventas.venta) - Number(ventas.descuento),
+  `${ventas.venta} − ${ventas.descuento} = ${ventas.venta_neta}`,
+);
+afirmar(
+  "y la neta nunca supera a la bruta",
+  Number(ventas.venta_neta) <= Number(ventas.venta) &&
+    Number(ventas.venta_neta) >= 0,
+  String(ventas.venta_neta),
+);
+
+// Misma cuenta, desglosada por tienda: si una tienda cuadrara y el total no,
+// el error estaría en el agrupamiento y no en la resta.
+{
+  const filas = (
+    await db.query(`select * from smartvalehubgold.fn_ventas_por_tienda()`)
+  ).rows;
+  const cuadran = filas.every(
+    (f) =>
+      Number(f.venta_neta) === Number(f.venta) - Number(f.descuento),
+  );
+  afirmar(
+    "y cuadra también tienda por tienda",
+    filas.length > 0 && cuadran,
+    `${filas.length} tiendas`,
+  );
+}
 afirmar("el tablero de ventas suma solo oro",
   Number(ventas.venta) > 0 && ventas.tickets === 6, `tickets ${ventas.tickets}`);
 

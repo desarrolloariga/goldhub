@@ -181,16 +181,50 @@ export default async function PaginaVentas({
         enlace={enlace}
       />
 
-      {/* La cifra principal, una sola por vista */}
+      {/*
+        Las dos cifras que hay que distinguir: lo que se vendió y lo que
+        quedó en caja. Antes solo estaba la primera, rotulada «VENTA DEL
+        PERIODO» sin decir cuál de las dos era —y con un descuento del 25%
+        la diferencia entre una y otra no es un matiz—.
+
+        La bruta manda en tamaño porque es la que mide la operación; la neta
+        va al lado, con la resta escrita entre ambas para que se vea de dónde
+        sale y nadie tenga que fiarse.
+      */}
       <Tarjeta className="flex flex-col gap-6 p-6 sm:p-8 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-col gap-2">
-          <span className="text-ink/42 text-[9px] font-medium tracking-[0.2em]">
-            VENTA DEL PERIODO
-          </span>
-          <span className="font-display text-ink text-[56px] leading-none font-medium">
-            {moneda(venta)}
-          </span>
-          <span className="text-ink/50 text-[13px]">{periodo}</span>
+        <div className="flex flex-wrap items-end gap-x-7 gap-y-4">
+          <div className="flex flex-col gap-2">
+            <span className="text-ink/42 text-[9px] font-medium tracking-[0.2em]">
+              VENTA BRUTA
+            </span>
+            <span className="font-display text-ink text-[52px] leading-none font-medium">
+              {moneda(venta)}
+            </span>
+            <span className="text-ink/50 text-[13px]">{periodo}</span>
+          </div>
+
+          <span className="text-ink/25 pb-[26px] text-[20px]">−</span>
+
+          <div className="flex flex-col gap-2 pb-[22px]">
+            <span className="text-ink/42 text-[9px] font-medium tracking-[0.2em]">
+              DESCUENTO
+            </span>
+            <span className="text-taupe-deep text-[22px] leading-none font-medium">
+              {moneda(Number(resumen.descuento))}
+            </span>
+          </div>
+
+          <span className="text-ink/25 pb-[26px] text-[20px]">=</span>
+
+          <div className="flex flex-col gap-2 pb-[10px]">
+            <span className="text-taupe-dark text-[9px] font-medium tracking-[0.2em]">
+              VENTA NETA
+            </span>
+            <span className="font-display text-taupe-deep text-[40px] leading-none font-medium">
+              {moneda(Number(resumen.venta_neta))}
+            </span>
+            <span className="text-ink/45 text-[12px]">lo que quedó en caja</span>
+          </div>
         </div>
 
         <div className="grid shrink-0 gap-x-8 gap-y-4 sm:grid-cols-2 lg:w-[380px]">
@@ -205,8 +239,8 @@ export default async function PaginaVentas({
               ["CLIENTES", String(resumen.clientes), "personas distintas"],
               [
                 "DESCUENTO",
-                monedaCorta(Number(resumen.descuento)),
-                `${parte(Number(resumen.descuento))}% de la venta`,
+                `${parte(Number(resumen.descuento))}%`,
+                "de la venta bruta",
               ],
             ] as [string, string, string][]
           ).map(([etiqueta, valor, nota]) => (
@@ -294,7 +328,10 @@ export default async function PaginaVentas({
                 detalle: [
                   t.asesora,
                   `${t.tickets} ${t.tickets === 1 ? "compra" : "compras"}`,
-                  `ticket ${t.ticket_promedio ? monedaCorta(Number(t.ticket_promedio)) : "—"}`,
+                  // La barra mide la bruta, así que la neta va escrita: sin
+                  // ella, dos tiendas con la misma barra pueden haber dejado
+                  // en caja cantidades distintas según cómo pagaran.
+                  `neta ${monedaCorta(Number(t.venta_neta))}`,
                 ]
                   .filter(Boolean)
                   .join(" · "),

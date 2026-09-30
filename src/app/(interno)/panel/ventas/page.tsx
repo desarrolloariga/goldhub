@@ -5,7 +5,7 @@ import { alcanceDe, requerirSesion } from "@/lib/auth/guardas";
 import { ventasDirectas, consolidado } from "@/lib/datos/ventas";
 import { listarTiendas } from "@/lib/datos/tiendas";
 import { fecha, moneda } from "@/lib/format";
-import { hoyLocal, sumarDias } from "@/lib/rango-fechas";
+import { ES_FECHA, hoyLocal, sumarDias } from "@/lib/rango-fechas";
 
 import { FormularioVenta } from "./formulario";
 import { Listado } from "./listado";
@@ -22,22 +22,30 @@ export const metadata: Metadata = { title: "Venta sin vale" };
  * Aquí sí hay dos metales: el descuento de la campaña solo aplica a oro,
  * pero lo que la tienda vende normalmente incluye plata.
  */
-export default async function PaginaVentasDirectas() {
+export default async function PaginaVentasDirectas({
+  searchParams,
+}: PageProps<"/panel/ventas">) {
   const sesion = await requerirSesion();
   const alcance = alcanceDe(sesion);
+  const params = await searchParams;
 
   // El mes en curso: es el periodo con el que se cuadra una caja.
   const hoy = hoyLocal();
   const desdeMes = `${hoy.slice(0, 7)}-01`;
 
+  /*
+   * El historial arranca en las dos últimas semanas —lo recién anotado, que
+   * es lo que se repasa a diario— pero admite fechas: para corregir algo de
+   * hace un mes hay que poder verlo, y el reporte no deja borrar.
+   */
+  const crudoDesde = typeof params.desde === "string" ? params.desde.trim() : "";
+  const crudoHasta = typeof params.hasta === "string" ? params.hasta.trim() : "";
+  const desde = ES_FECHA.test(crudoDesde) ? crudoDesde : sumarDias(hoy, -14);
+  const hasta = ES_FECHA.test(crudoHasta) ? crudoHasta : hoy;
+  const aMedida = ES_FECHA.test(crudoDesde) || ES_FECHA.test(crudoHasta);
+
   const [ventas, totales, tiendas] = await Promise.all([
-    // Las últimas dos semanas en el listado: lo de más atrás se consulta en
-    // el reporte, que es donde se mira el histórico.
-    ventasDirectas({
-      tiendaId: alcance,
-      desde: sumarDias(hoy, -14),
-      hasta: hoy,
-    }),
+    ventasDirectas({ tiendaId: alcance, desde, hasta }),
     consolidado({ desde: desdeMes, hasta: hoy, tiendaId: alcance }),
     // Solo el administrador elige tienda; una cuenta de tienda ya está
     // acotada a la suya.
@@ -115,7 +123,14 @@ export default async function PaginaVentasDirectas() {
             </p>
           </Tarjeta>
 
-          <Listado ventas={ventas} mostrarTienda={sesion.rol === "admin"} />
+          <Listado
+            ventas={ventas}
+            mostrarTienda={sesion.rol === "admin"}
+            desde={crudoDesde}
+            hasta={crudoHasta}
+            aMedida={aMedida}
+            hoy={hoy}
+          />
         </div>
       </div>
     </>

@@ -170,3 +170,50 @@ export async function eliminarRedencion(
 
   redirect(`/panel/redenciones?${parametros.toString()}`);
 }
+
+export type EstadoBorradoFila = { error?: string; ok?: boolean } | null;
+
+/**
+ * Borra una compra desde el listado, sin salir de él.
+ *
+ * Es la misma operación que `eliminarRedencion` pero para otro sitio, y por
+ * eso no comparten función: aquella pide que se escriba BORRAR y termina
+ * redirigiendo con un aviso, que es lo correcto cuando se ha entrado a la
+ * ficha de una compra concreta. Aquí el freno es el aviso del navegador con
+ * los datos de la fila, y no se navega a ninguna parte porque lo normal es
+ * repasar varias líneas seguidas.
+ *
+ * La comprobación de permiso es la misma —`requerirAdmin` y la función de
+ * Postgres—, así que relajar el freno de la pantalla no abre ninguna puerta:
+ * una cuenta de tienda sigue sin poder borrar nada.
+ */
+export async function eliminarRedencionEnFila(
+  _previo: EstadoBorradoFila,
+  formData: FormData,
+): Promise<EstadoBorradoFila> {
+  const sesion = await requerirAdmin();
+  const id = Number(formData.get("id"));
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return { error: "Falta la compra que se quiere eliminar." };
+  }
+
+  const { data, error } = await db().rpc("fn_eliminar_redencion", {
+    p_redencion_id: id,
+    p_usuario_id: sesion.usuarioId,
+  });
+
+  if (error) return { error: comoMensaje(error) };
+
+  revalidatePath("/panel/redenciones");
+  revalidatePath("/panel/contactos");
+  revalidatePath("/panel/reportes");
+  revalidatePath("/panel/reportes/ventas");
+  revalidatePath("/panel/reportes/tiendas");
+  revalidatePath("/panel");
+
+  const fila = Array.isArray(data) ? data[0] : data;
+  if (fila?.vale_codigo) revalidatePath(`/panel/vales/${fila.vale_codigo}`);
+
+  return { ok: true };
+}

@@ -2,6 +2,9 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { PencilLine, Trash2 } from "lucide-react";
 
+import { BotonBorrar } from "@/components/ui/boton-borrar";
+import { eliminarRedencionEnFila } from "@/lib/acciones/redenciones-admin";
+
 import { Tarjeta } from "@/components/ui/tarjeta";
 import { Vacio } from "@/components/ui/vacio";
 import { alcanceDe, requerirSesion } from "@/lib/auth/guardas";
@@ -172,16 +175,26 @@ export default async function PaginaRedenciones({
                     </span>
                   </span>
 
-                  {/* Corregir una compra mueve la venta del día: es del
+                  {/* Corregir o borrar mueve la venta del día: es del
                       administrador, no de quien la capturó. */}
                   {sesion.rol === "admin" ? (
-                    <Link
-                      href={`/panel/redenciones/${r.id}`}
-                      title="Corregir esta compra"
-                      className="border-ink/12 text-ink/45 hover:border-taupe hover:text-ink rounded-field flex size-8 shrink-0 items-center justify-center border transition-colors"
-                    >
-                      <PencilLine size={14} />
-                    </Link>
+                    <span className="flex shrink-0 items-center gap-2">
+                      <Link
+                        href={`/panel/redenciones/${r.id}`}
+                        title="Corregir esta compra"
+                        className="border-ink/12 text-ink/45 hover:border-taupe hover:text-ink rounded-field flex size-8 shrink-0 items-center justify-center border transition-colors"
+                      >
+                        <PencilLine size={14} />
+                      </Link>
+                      {/* El aviso nombra la compra concreta: quien iba a
+                          borrar otra fila lo ve antes de aceptar. */}
+                      <BotonBorrar
+                        id={r.id}
+                        titulo="Borrar esta compra"
+                        descripcion={`la compra de ${moneda(r.monto_oro)} de ${r.comprador} en ${r.tienda}`}
+                        accion={eliminarRedencionEnFila}
+                      />
+                    </span>
                   ) : null}
                 </li>
               ))}

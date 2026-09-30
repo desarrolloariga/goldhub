@@ -12,6 +12,7 @@ const PESTANAS = [
   { href: "/panel/reportes", nombre: "Campaña" },
   { href: "/panel/reportes/ventas", nombre: "Ventas" },
   { href: "/panel/reportes/tiendas", nombre: "Por tienda" },
+  { href: "/panel/reportes/movimientos", nombre: "Todas las ventas" },
 ];
 
 export function PestanasReportes({ activa }: { activa: string }) {

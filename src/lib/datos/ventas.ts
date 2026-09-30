@@ -185,3 +185,39 @@ export async function ventasDirectas(rango: RangoVentas = {}) {
   if (error) throw new Error(`No se pudieron leer las ventas: ${error.message}`);
   return (data ?? []) as VentaDirecta[];
 }
+
+/** Una línea del historial unificado, venga de donde venga. */
+export type VentaUnificada = {
+  clave: string;
+  tipo: "vale" | "normal";
+  dia: string;
+  fecha: string;
+  tienda_id: number;
+  tienda: string;
+  codigo: string | null;
+  comprador: string | null;
+  monto_oro: number;
+  monto_plata: number;
+  descuento: number;
+  neto: number;
+  detalle: string;
+};
+
+/**
+ * Las ventas con vale y sin vale en una sola lista.
+ *
+ * `tipo` acepta 'vale', 'normal' o nada para las dos.
+ */
+export async function todasLasVentas(
+  rango: RangoVentas & { tipo?: string | null } = {},
+) {
+  const { data, error } = await db().rpc("fn_todas_las_ventas", {
+    p_desde: rango.desde ?? null,
+    p_hasta: rango.hasta ?? null,
+    p_tienda_id: rango.tiendaId ?? null,
+    p_tipo: rango.tipo === "vale" || rango.tipo === "normal" ? rango.tipo : null,
+  });
+
+  if (error) throw new Error(`No se pudieron leer las ventas: ${error.message}`);
+  return (data ?? []) as VentaUnificada[];
+}

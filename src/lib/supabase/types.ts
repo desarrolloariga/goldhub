@@ -740,6 +740,29 @@ export type Database = {
           fecha_creacion: string;
         }[];
       };
+      fn_todas_las_ventas: {
+        Args: {
+          p_desde?: string | null;
+          p_hasta?: string | null;
+          p_tienda_id?: number | null;
+          p_tipo?: string | null;
+        };
+        Returns: {
+          clave: string;
+          tipo: "vale" | "normal";
+          dia: string;
+          fecha: string;
+          tienda_id: number;
+          tienda: string;
+          codigo: string | null;
+          comprador: string | null;
+          monto_oro: number;
+          monto_plata: number;
+          descuento: number;
+          neto: number;
+          detalle: string;
+        }[];
+      };
       fn_ventas_consolidado: {
         Args: VentasArgs;
         Returns: {

@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { requerirAdmin } from "@/lib/auth/guardas";
 import { desempenoTiendas } from "@/lib/datos/metricas";
 import { listarRedenciones } from "@/lib/datos/redenciones";
+import { todasLasVentas, ventasDirectas } from "@/lib/datos/ventas";
 import { listarVales } from "@/lib/datos/vales";
 import { ETIQUETA_SEGMENTO, ETIQUETA_TIPO } from "@/lib/supabase/types";
 
@@ -68,10 +69,12 @@ function hoja(
 export async function GET() {
   await requerirAdmin();
 
-  const [desempeno, vales, redenciones] = await Promise.all([
+  const [desempeno, vales, redenciones, directas, todas] = await Promise.all([
     desempenoTiendas("ingreso"),
     listarVales({ porPagina: 5000 }),
     listarRedenciones({ porPagina: 5000 }),
+    ventasDirectas(),
+    todasLasVentas(),
   ]);
 
   const libro = new ExcelJS.Workbook();
@@ -196,6 +199,9 @@ export async function GET() {
     "Redenciones",
     [
       { header: "Fecha", key: "fecha", width: 20 },
+      // Siempre «Con vale» en esta hoja, y por eso mismo va: un Excel
+      // guardado suelto pierde de qué hoja salió, y la columna lo dice.
+      { header: "Tipo", key: "tipo", width: 10 },
       { header: "Vale", key: "codigo", width: 16 },
       { header: "Comprador", key: "comprador", width: 26 },
       { header: "Teléfono", key: "telefono", width: 16 },
@@ -208,6 +214,7 @@ export async function GET() {
     ],
     redenciones.redenciones.map((r) => ({
       fecha: new Date(r.fecha_creacion),
+      tipo: "Con vale",
       codigo: r.codigo,
       comprador: r.comprador,
       telefono: r.comprador_telefono,
@@ -217,6 +224,66 @@ export async function GET() {
       montoOro: r.monto_oro,
       descuento: r.descuento_aplicado,
       registro: r.registrada_por,
+    })),
+  );
+
+  /* ── Ventas sin vale ────────────────────────────────────────────────── */
+  hoja(
+    libro,
+    "Ventas sin vale",
+    [
+      { header: "Fecha", key: "dia", width: 12 },
+      { header: "Tipo", key: "tipo", width: 10 },
+      { header: "Tienda", key: "tienda", width: 24 },
+      { header: "Oro", key: "oro", width: 15, formato: MONEDA },
+      { header: "Plata", key: "plata", width: 15, formato: MONEDA },
+      { header: "Total", key: "total", width: 15, formato: MONEDA },
+      { header: "Nota", key: "nota", width: 26 },
+      { header: "Registró", key: "registro", width: 24 },
+    ],
+    directas.map((d) => ({
+      // Como texto: en una columna de fechas, Excel las reinterpreta según
+      // el idioma del equipo y el 09/10 pasa a ser otro día.
+      dia: d.dia,
+      tipo: "Normal",
+      tienda: d.tienda,
+      oro: Number(d.monto_oro),
+      plata: Number(d.monto_plata),
+      total: Number(d.total),
+      nota: d.nota ?? "",
+      registro: d.registrada ?? "",
+    })),
+  );
+
+  /* ── Las dos juntas ─────────────────────────────────────────────────── */
+  // La hoja que permite cruzarlas sin hacerlo a mano: mismas filas que las
+  // dos anteriores, más la columna que dice de cuál viene cada una.
+  hoja(
+    libro,
+    "Todas las ventas",
+    [
+      { header: "Fecha", key: "dia", width: 12 },
+      { header: "Tipo", key: "tipo", width: 10 },
+      { header: "Tienda", key: "tienda", width: 24 },
+      { header: "Vale", key: "codigo", width: 15 },
+      { header: "Comprador", key: "comprador", width: 26 },
+      { header: "Detalle", key: "detalle", width: 22 },
+      { header: "Oro", key: "oro", width: 15, formato: MONEDA },
+      { header: "Plata", key: "plata", width: 15, formato: MONEDA },
+      { header: "Descuento", key: "descuento", width: 15, formato: MONEDA },
+      { header: "Neto", key: "neto", width: 15, formato: MONEDA },
+    ],
+    todas.map((v) => ({
+      dia: v.dia,
+      tipo: v.tipo === "vale" ? "Con vale" : "Normal",
+      tienda: v.tienda,
+      codigo: v.codigo ?? "",
+      comprador: v.comprador ?? "",
+      detalle: v.detalle ?? "",
+      oro: Number(v.monto_oro),
+      plata: Number(v.monto_plata),
+      descuento: Number(v.descuento),
+      neto: Number(v.neto),
     })),
   );
 

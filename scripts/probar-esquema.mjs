@@ -683,6 +683,61 @@ console.log("\nVenta sin vale");
 
   await rechaza("una tienda no borra la venta de otra", "SV012",
     `select smartvalehubgold.fn_eliminar_venta_directa($1,$2)`, [u2.id, v.id]);
+
+  // ── Las dos fuentes en una sola lista ─────────────────────────────────
+  {
+    const todas = (
+      await db.query(`select * from smartvalehubgold.fn_todas_las_ventas()`)
+    ).rows;
+
+    const conVale = todas.filter((x) => x.tipo === "vale");
+    const normales = todas.filter((x) => x.tipo === "normal");
+    afirmar(
+      "la lista trae los dos tipos marcados",
+      conVale.length > 0 && normales.length > 0,
+      `${conVale.length} con vale, ${normales.length} normales`,
+    );
+
+    // Las claves se componen porque los ids de las dos tablas se pisan: sin
+    // eso, una redención 5 y una venta directa 5 chocarían en la pantalla.
+    const claves = new Set(todas.map((x) => x.clave));
+    afirmar("y ninguna clave se repite", claves.size === todas.length,
+      `${claves.size} de ${todas.length}`);
+
+    afirmar(
+      "una venta con vale trae su código y su comprador",
+      conVale.every((x) => x.codigo && x.comprador),
+    );
+    afirmar(
+      "y una normal no finge tenerlos",
+      normales.every((x) => x.codigo === null && x.comprador === null),
+    );
+    afirmar(
+      "la plata solo aparece en las normales",
+      conVale.every((x) => Number(x.monto_plata) === 0),
+    );
+
+    // El neto de cada línea: con vale se descuenta, sin vale no hay nada que
+    // descontar.
+    afirmar(
+      "el neto de cada línea cuadra",
+      todas.every(
+        (x) =>
+          Math.abs(
+            Number(x.neto) -
+              (Number(x.monto_oro) + Number(x.monto_plata) - Number(x.descuento)),
+          ) < 0.01,
+      ),
+    );
+
+    const soloVale = (
+      await db.query(
+        `select * from smartvalehubgold.fn_todas_las_ventas(null,null,null,'vale')`)
+    ).rows;
+    afirmar("se puede filtrar por tipo",
+      soloVale.length === conVale.length && soloVale.every((x) => x.tipo === "vale"),
+      `${soloVale.length}`);
+  }
 }
 
 // ── Chat ─────────────────────────────────────────────────────────────────
